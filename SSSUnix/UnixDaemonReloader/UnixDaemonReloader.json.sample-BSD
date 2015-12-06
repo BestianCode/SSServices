@@ -1,0 +1,19 @@
+{
+	"UDR_Shell":		"/bin/sh",
+	"UDR_ShellExecParam":	"-c",
+
+	"UDR_WatchList":		[
+				["/usr/local/etc/squid","squid.conf", "/usr/local/etc/rc.d/squid.sh restart"],
+				["/etc","rc.firewall","/bin/sh /etc/rc.firewall"],
+				["/usr/local/etc/namedb/master","*","/usr/local/etc/rc.d/named restart"],
+				["/usr/local/etc/namedb","named.conf","/usr/local/etc/rc.d/named restart"]
+					],
+
+	"Sleep_Time":		60,
+
+	"SQLite_DB":		"/server/SSS/UnixDaemonReloader/UnixDaemonReloader.sqlite",
+	"LOG_File":		"/var/log/SSS/UnixDaemonReloader.log",
+	"PID_File":		"/var/run/SSS/UnixDaemonReloader.pid",
+
+	"LogLevel":		0
+}

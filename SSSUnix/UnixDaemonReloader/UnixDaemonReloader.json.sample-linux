@@ -1,0 +1,20 @@
+{
+	"UDR_Shell":		"/bin/sh",
+	"UDR_ShellExecParam":	"-c",
+
+	"UDR_WatchList":		[
+				["/etc/postfix", "main.cf", "/etc/init.d/postfix reload"],
+				["/etc/postfix", "master.cf", "/etc/init.d/postfix reload"],
+				["/etc/amavis/conf.d", "*", "/etc/init.d/amavis restart"],
+				["/etc/spamassassin", "local.cf", "/etc/init.d/spamassassin reload"],
+				["/etc","iptables.conf","/server/scripts/iptables/rest.sh"]
+					],
+
+	"Sleep_Time":		60,
+
+	"SQLite_DB":		"/server/SSS/UnixDaemonReloader/UnixDaemonReloader.sqlite",
+	"LOG_File":		"/var/log/SSS/UnixDaemonReloader.log",
+	"PID_File":		"/var/run/SSS/UnixDaemonReloader.pid",
+
+	"LogLevel":		0
+}
