@@ -1,0 +1,22 @@
+{
+	"SQL_Engine":		"PG / MY / None",
+
+	"PG_DSN":		"host=SERVER-NAME user=USER password=PASSWORD dbname=DB sslmode=disable",
+	"MY_DSN":		"tcp:SERVER-NAME:3306*DB/USER/PASSWORD",
+
+	"SQH_SQL_UserCheck":	"select login from proxy_auth where login='{USER}' and domain='{DOMAIN}'",
+	"SQH_SQL_PassCheck":	"select login from proxy_auth where login='{USER}' and domain='{DOMAIN}' and password='{PASS}'",
+
+	"SQH_LogPasswords":	"Yes",
+
+	"SQH_AD_GroupMember":	"Domain Users",
+	"SQH_LDAP_URL":		[
+					["DOMAIN1.ORG","URL1:389","DC=DOMAIN1,DC=ORG"],
+					["DOMAIN2.ORG","URL2:389","DC=DOMAIN2,DC=ORG"],
+					["DOMAIN2.ORG","URL3:389","DC=DOMAIN2,DC=ORG"],
+					["DOMAIN3.ORG","URL4:389","DC=DOMAIN3,DC=ORG"]
+				],
+
+	"LOG_File":		"./SquidHelperAD.log",
+	"LOG_Level":		0
+}
