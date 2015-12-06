@@ -13,8 +13,8 @@
 	"Sleep_Time":		60,
 
 	"SQLite_DB":		"/server/SSS/UnixDaemonReloader/UnixDaemonReloader.sqlite",
-	"LOG_File":		"/var/log/SSS/UnixDaemonReloader.log",
-	"PID_File":		"/var/run/SSS/UnixDaemonReloader.pid",
 
-	"LogLevel":		0
+	"PID_File":		"/var/run/SSS/UnixDaemonReloader.pid",
+	"LOG_File":		"/var/log/SSS/UnixDaemonReloader.log",
+	"LOG_Level":		0
 }
