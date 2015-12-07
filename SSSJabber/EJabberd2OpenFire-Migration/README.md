@@ -56,5 +56,5 @@
 
 Bonus:
 * If you use cluster, copy "Certificates vault" _/etc/openfire/security_ from first server to second and etc.
-* If you user cluster with linux/BSD UCarp/Carp, to edit /var/lib/openfire/plugins/hazelcast/classes/hazelcast-cache-config.xml for listening only on non-carp ip. If you do not make it, your cluster will die whenever one of the nodes will go to down.
+* If you use cluster with linux/BSD UCarp/Carp, to edit /var/lib/openfire/plugins/hazelcast/classes/hazelcast-cache-config.xml for listening only on non-carp ip. If you do not make it, your cluster will die whenever one of the nodes will go to down.
 
