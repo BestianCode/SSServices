@@ -7,9 +7,11 @@ import (
 	"os"
 	"strings"
 
-	// SQLite
+	// PostgreSQL
 	_ "github.com/lib/pq"
+	// SQLite
 	_ "github.com/mattn/go-sqlite3"
+	// MySQL
 	_ "github.com/ziutek/mymysql/godrv"
 )
 
