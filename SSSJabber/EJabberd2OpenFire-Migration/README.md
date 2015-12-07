@@ -1,4 +1,6 @@
-# Tool for migration from EJabberd to OpenFire
+#  EJabberd2OpenFire-Migration
+* This application help to transfer data from EJabberd to OpenFire.
+* Help to moving passwords, rosters and VCards.
 
 ## Step 1
 ### run: "ejabberdctl --node ejabberd@jabber.mydomain.org export2odbc jabber.mydomain.org ."
