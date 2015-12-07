@@ -230,7 +230,7 @@ func main() {
 
 	const (
 		pName = string("SSServices / UnixDaemonReloader")
-		pVer  = string("1 2015.12.07.01.00")
+		pVer  = string("1 2015.12.07.23.59")
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)

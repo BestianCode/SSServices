@@ -1,0 +1,27 @@
+{
+	"SQL_Engine":		"PG / MY / SQLite / None",
+
+	"PG_DSN":		"host=SERVER-NAME user=USER password=PASSWORD dbname=DB sslmode=disable",
+	"MY_DSN":		"tcp:SERVER-NAME:3306*DB/USER/PASSWORD",
+	"SQLite_DB":		"./EJabberd2OpenFire.sqlite",
+
+	"E2O_passwd":		"files/passwd.txt",
+	"E2O_roster":		"files/roster.txt",
+	"E2O_vcard":		"files/vcard.txt",
+
+	"E2O_JDomain":		".jabber.org",
+
+	"E2O_OutXML":		"files/output.xml",
+
+	"E2O_VCD_Engine":	"PG / MY",
+	"E2O_VCD_PG_DSN":	"host=SERVER-NAME user=USER password=PASSWORD dbname=DB sslmode=disable",
+	"E2O_VCD_MY_DSN":	"tcp:SERVER-NAME:3306*DB/USER/PASSWORD",
+
+	"E2O_Name_Update":	"Yes / No",
+	"E2O_Name_PG_DSN":	"host=SERVER-NAME user=USER password=PASSWORD dbname=DB sslmode=disable",
+
+	"LOG_File":		"./EJabberd2OpenFire.log",
+	"PID_File":		"./EJabberd2OpenFire.pid",
+
+	"LogLevel":		3
+}

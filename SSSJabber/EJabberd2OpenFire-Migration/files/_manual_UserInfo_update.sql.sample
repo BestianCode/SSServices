@@ -1,0 +1,5 @@
+delete from nick where lower(jid) like 'denis@%';
+delete from nick where lower(jid) like 'vasilev_na@%';
+
+insert into nick (jid,nick,fullname) values ('denis@jabber.tgk-4.ru','Ivanov Denis','Ivanov Denis Olegovich');
+insert into nick (jid,nick,fullname) values ('vasilev_na@jabber.tgk-4.ru','Vasilev E.P.','Vasilev Egor Petrovich');

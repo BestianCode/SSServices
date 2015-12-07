@@ -121,8 +121,8 @@ func main() {
 	jsonConfig.Silent = "silent"
 
 	const (
-		pName = string("SSS Squid Helper AD auth over LDAP")
-		pVer  = string("1 Alpha 2015.12.02.21.00")
+		pName = string("SSServices / SquidHelperAD")
+		pVer  = string("1 2015.12.07.23.59")
 	)
 
 	jsonConfig.Init("./SquidHelperAD.log", "./SquidHelperAD.json")
