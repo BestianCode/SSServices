@@ -13,7 +13,7 @@ import (
 	"github.com/BestianRU/SSServices/SSModules/sssql"
 )
 
-func loginAuth(conf sscfg.ReadJSONConfig, rLog sslog.LogFile, user, domain, password string) int {
+func loginAuth(conf sscfg.ReadJSONConfig, rLog sslog.LogFile, user, domain, password string) (int, string) {
 	var (
 		DBase          sssql.USQL
 		DL             ssldap.LDAP
@@ -38,21 +38,21 @@ func loginAuth(conf sscfg.ReadJSONConfig, rLog sslog.LogFile, user, domain, pass
 			res, err = DBase.D.Query(sql_sel)
 		default:
 			rLog.LogDbg(0, "SQL Engine select error! (PG|MY|none)")
-			return -1
+			return -1, "Error"
 		}
 
 		defer DBase.Close()
 
 		if err != nil {
 			rLog.LogDbg(0, "SQL: Query() select user/pass error: %v\n", err)
-			return -1
+			return -1, "Error"
 		}
 		res.Next()
 		get = ""
 		res.Scan(&get)
 		if get == user {
 			rLog.LogDbg(2, "SQL Auth   for user: ", user, "@", domain, " - Ok!\n")
-			return 0
+			return 0, "SQL"
 		}
 		res.Close()
 		rLog.LogDbg(2, "SQL Auth   for user: ", user, "@", domain, " - No!\n")
@@ -62,14 +62,14 @@ func loginAuth(conf sscfg.ReadJSONConfig, rLog sslog.LogFile, user, domain, pass
 		res, err = DBase.D.Query(sql_sel)
 		if err != nil {
 			rLog.LogDbg(0, "SQL: Query() select user error: %v\n", err)
-			return -1
+			return -1, "Error"
 		}
 		res.Next()
 		get = ""
 		res.Scan(&get)
 		if get != user {
 			rLog.LogDbg(2, "SQL Search for user: ", user, "@", domain, " - No!\n")
-			return -1
+			return -1, "Error"
 		} else {
 			rLog.LogDbg(2, "SQL Search for user: ", user, "@", domain, " - Ok!\n")
 		}
@@ -99,13 +99,13 @@ func loginAuth(conf sscfg.ReadJSONConfig, rLog sslog.LogFile, user, domain, pass
 			}
 			if ldapAuthResult == 0 {
 				if ldapGroupCheck != 0 && conf.Conf.SQH_AD_GroupMember != "" {
-					return -1
+					return -1, "not member of group"
 				}
-				return 0
+				return 0, "Domain: " + y[0]
 			}
 		}
 	}
-	return -1
+	return -1, "Error"
 }
 
 func main() {
@@ -114,6 +114,7 @@ func main() {
 		rLog             sslog.LogFile
 		err              error
 		loginAuthResult  int
+		arMessage        string
 		loginAuthResultT = []string{"ERR", "OK"}
 		logPassword      string
 	)
@@ -122,7 +123,7 @@ func main() {
 
 	const (
 		pName = string("SSServices / SquidHelperAD")
-		pVer  = string("1 2015.12.07.23.59")
+		pVer  = string("1 2015.12.08.21.00")
 	)
 
 	jsonConfig.Init("./SquidHelperAD.log", "./SquidHelperAD.json")
@@ -154,11 +155,11 @@ func main() {
 				}
 				uInputx := strings.Split(uInput[0], "@")
 				if len(uInputx) > 1 {
-					loginAuthResult = loginAuth(jsonConfig, rLog, uInputx[0], uInputx[1], uInput[1])
-					rLog.Log("--> Login: ", uInputx[0], "@", uInputx[1], " (", logPassword, ") - ", loginAuthResultT[loginAuthResult+1])
+					loginAuthResult, arMessage = loginAuth(jsonConfig, rLog, uInputx[0], uInputx[1], uInput[1])
+					rLog.Log("--> Login: ", uInputx[0], "@", uInputx[1], " (", logPassword, ") - ", loginAuthResultT[loginAuthResult+1], " (", arMessage, ")")
 				} else {
-					loginAuthResult = loginAuth(jsonConfig, rLog, uInput[0], "", uInput[1])
-					rLog.Log("--> Login: ", uInputx[0], " (", logPassword, ") - ", loginAuthResultT[loginAuthResult+1])
+					loginAuthResult, arMessage = loginAuth(jsonConfig, rLog, uInput[0], "", uInput[1])
+					rLog.Log("--> Login: ", uInputx[0], " (", logPassword, ") - ", loginAuthResultT[loginAuthResult+1], " (", arMessage, ")")
 				}
 				fmt.Printf("%s\n", loginAuthResultT[loginAuthResult+1])
 			} else {
