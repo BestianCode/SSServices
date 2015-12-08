@@ -14,6 +14,8 @@
 
 example squid.conf:
 -------------------
+
 auth_param basic program /server/SSS/SquidHelperAD/SquidHelperAD.gl -config=/server/SSS/SquidHelperAD/SquidHelperAD.json
+
 auth_param basic children 50 startup=5 idle=1
 
