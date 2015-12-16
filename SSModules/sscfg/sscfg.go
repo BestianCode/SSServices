@@ -54,6 +54,7 @@ type ReadJSONConfig struct {
 		SQH_LogPasswords    string
 		SQH_SQL_UserCheck   string
 		SQH_SQL_PassCheck   string
+		SQH_SQL_IPUpdate    string
 		SQH_LDAP_URL        [][]string
 		SQH_AD_GroupMember  string
 		CardDAVIPSuffix     []string

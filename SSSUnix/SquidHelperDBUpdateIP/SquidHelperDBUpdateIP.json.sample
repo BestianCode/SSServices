@@ -1,0 +1,11 @@
+{
+	"SQL_Engine":		"PG / MY",
+
+	"PG_DSN":		"host=SERVER-NAME user=USER password=PASSWORD dbname=DB sslmode=disable",
+	"MY_DSN":		"tcp:SERVER-NAME:3306*DB/USER/PASSWORD",
+
+	"SQH_SQL_IPUpdate":	"update proxy_auth set ip='{IP}' where login='{USER}' and domain='{DOMAIN}'",
+
+	"LOG_File":		"./SquidHelperAD.log",
+	"LOG_Level":		3
+}
