@@ -1,0 +1,5 @@
+* 2015.12.23
+    Добавлен параметр UDR_PauseBefore - задержка перед выполнением скрипта
+    Added parameter UDR_PauseBefore - pause before running the script
+* 2015.12.07
+    :)
