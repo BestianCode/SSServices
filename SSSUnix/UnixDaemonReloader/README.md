@@ -17,17 +17,17 @@
 #####	"UDR_ShellExecParam":	"-c",
 
 * _в виде списка задаем строки с отслеживаемыми файлами и каталогами_
-/*
-"/каталог", "файл", "действие",
-"/каталог", "маска*файла*", "действие",
-"/каталог", "!все*файлы*кроме*этого,!кроме*этого,!и*кроме*этого", "действие"
-*/
+
+   "/каталог", "файл", "действие",
+   "/каталог", "маска*файла*", "действие",
+   "/каталог", "!все*файлы*кроме*этого,!кроме*этого,!и*кроме*этого", "действие"
+
 * _specify a list of strings to track files and directories_
-/*
-"/directory", "file", "action",
-"/directory", "mask*of*the*files*", "action",
-"/directory", "!all*files*except*this,!except*this,!and*except*this", "action"
-*/
+
+   "/directory", "file", "action",
+   "/directory", "mask*of*the*files*", "action",
+   "/directory", "!all*files*except*this,!except*this,!and*except*this", "action"
+
 #####	"UDR_WatchList":		[
 #####				["/etc/postfix", "main.cf", "/etc/init.d/postfix reload"],
 #####				["/etc/postfix", "master.cf", "/etc/init.d/postfix reload"],
