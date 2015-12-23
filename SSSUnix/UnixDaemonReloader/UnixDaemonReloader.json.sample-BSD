@@ -9,6 +9,8 @@
 				["/usr/local/etc/namedb","named.conf","/usr/local/etc/rc.d/named restart"]
 					],
 
+	"UDR_PauseBefore":	600,
+
 	"Sleep_Time":		60,
 
 	"SQLite_DB":		"/server/SSS/UnixDaemonReloader/UnixDaemonReloader.sqlite",

@@ -10,6 +10,8 @@
 				["/etc","iptables.conf","/server/scripts/iptables/rest.sh"]
 					],
 
+	"UDR_PauseBefore":	600,
+
 	"Sleep_Time":		60,
 
 	"SQLite_DB":		"/server/SSS/UnixDaemonReloader/UnixDaemonReloader.sqlite",
