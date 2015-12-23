@@ -51,6 +51,8 @@ type ReadJSONConfig struct {
 		UDR_WatchList       [][]string
 		UDR_Shell           string
 		UDR_ShellExecParam  string
+		UDR_SleepCommand    string
+		UDR_PauseBefore     int
 		SQH_LogPasswords    string
 		SQH_SQL_UserCheck   string
 		SQH_SQL_PassCheck   string

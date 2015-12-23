@@ -201,6 +201,23 @@ func cleanFCSdb(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) int {
 	return 1
 }
 
+func startCommand(conf sscfg.ReadJSONConfig, get string) {
+	var (
+		rLog sslog.LogFile
+	)
+	rLog.ON(conf.Conf.LOG_File, conf.Conf.LOG_Level)
+	if conf.Conf.UDR_PauseBefore > 0 {
+		rLog.Log("/|\\ Sleep ", conf.Conf.UDR_PauseBefore, " sec. before start: ", get)
+		time.Sleep(time.Duration(conf.Conf.UDR_PauseBefore) * time.Second)
+	}
+	rLog.Log("--> Start: ", get)
+	err := exec.Command(conf.Conf.UDR_Shell, conf.Conf.UDR_ShellExecParam, get+" &").Start()
+	if err != nil {
+		log.Println("\tExec error: %v\n", err)
+	}
+	rLog.OFF()
+}
+
 func restartFCS(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) int {
 	var get string
 	res, err := dbase.D.Query("select action from go;")
@@ -210,12 +227,7 @@ func restartFCS(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) int {
 	}
 	for res.Next() {
 		res.Scan(&get)
-		rLog.Log("--> Start: ", get)
-
-		err := exec.Command(conf.Conf.UDR_Shell, conf.Conf.UDR_ShellExecParam, get+" &").Start()
-		if err != nil {
-			log.Println("\tExec error: %v\n", err)
-		}
+		go startCommand(conf, get)
 	}
 	return 1
 }
@@ -230,7 +242,7 @@ func main() {
 
 	const (
 		pName = string("SSServices / UnixDaemonReloader")
-		pVer  = string("1 2015.12.07.23.59")
+		pVer  = string("1 2015.12.23.23.00")
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)
