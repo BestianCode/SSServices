@@ -11,11 +11,11 @@
 
     Added parameters "pre-app script", "result of pre-app script" and "error script" into listing of files for watching. "Pre-app" script must to return result to stdout. Example for return: "OK" :) If returned value equals value from configuration file, will running script for restarting or reloading service, else after ending amount of attempts to execute "pre-app", will running "error script". See README.md for study new syntax of WatchList.
 
-	PS: You can add into "pre-app script" syntax check and backup configuration file. "Error script" may contain sending E-Mail or SMS and restore from backup copy of the config.
+    PS: You can add into "pre-app script" syntax check and backup configuration file. "Error script" may contain sending E-Mail or SMS and restore from backup copy of the config.
 
     Added parameter UDR_ScriptsPath, pointing the path to pre-app scripts.
 
-	Added parameter UDR_PreAppAttempt, indicating the number of executing times the "pre-app" script, after that execute "error-script" or stop attempts.
+    Added parameter UDR_PreAppAttempt, indicating the number of executing times the "pre-app" script, after that execute "error-script" or stop attempts.
 
     Fixed restart for all services after first initialize database of files
 
