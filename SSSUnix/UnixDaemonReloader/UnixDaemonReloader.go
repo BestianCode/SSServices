@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	//"os"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -18,7 +19,7 @@ import (
 )
 
 type aList struct {
-	file, action string
+	file, action, checkact, result, erroract string
 }
 
 var (
@@ -84,6 +85,15 @@ func getFullFileList(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) []aList {
 			for _, a := range readDIR(y[0], "", "") {
 				tmp.file = a
 				tmp.action = y[2]
+				if len(y) > 5 {
+					tmp.checkact = y[3]
+					tmp.result = y[4]
+					tmp.erroract = y[5]
+				} else {
+					tmp.checkact = ""
+					tmp.result = ""
+					tmp.erroract = ""
+				}
 				arr = append(arr, tmp)
 			}
 		} else {
@@ -91,12 +101,30 @@ func getFullFileList(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) []aList {
 				for _, a := range readDIR(y[0], strings.Replace(y[1], "!", "", -1), "") {
 					tmp.file = a
 					tmp.action = y[2]
+					if len(y) > 5 {
+						tmp.checkact = y[3]
+						tmp.result = y[4]
+						tmp.erroract = y[5]
+					} else {
+						tmp.checkact = ""
+						tmp.result = ""
+						tmp.erroract = ""
+					}
 					arr = append(arr, tmp)
 				}
 			} else {
 				for _, a := range readDIR(y[0], "", y[1]) {
 					tmp.file = a
 					tmp.action = y[2]
+					if len(y) > 5 {
+						tmp.checkact = y[3]
+						tmp.result = y[4]
+						tmp.erroract = y[5]
+					} else {
+						tmp.checkact = ""
+						tmp.result = ""
+						tmp.erroract = ""
+					}
 					arr = append(arr, tmp)
 				}
 			}
@@ -138,11 +166,11 @@ func checkFCS(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) int {
 					log.Println("SQLite: Exec() insert error: %v\n", err)
 					return -1
 				}
-				_, err = dbase.D.Exec(fmt.Sprintf("insert into go (action) select '%s' where '%s' not in (select action from go where action='%s');", a.action, a.action, a.action))
+				/*_, err = dbase.D.Exec(fmt.Sprintf("insert into go (action, checkact, result) select '%s','%s','%s' where '%s' not in (select action from go where action='%s');", a.action, a.checkact, a.result, a.action, a.action))
 				if err != nil {
 					log.Println("SQLite: Exec() ACT insert wI error: %v\n", err)
 					return -1
-				}
+				}*/
 				rLog.Log("--> New file: ", a.file, " act: ", a.action)
 				result = 1
 			} else {
@@ -152,7 +180,7 @@ func checkFCS(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) int {
 						log.Println("SQLite: Exec() update error: %v\n", err)
 						return -1
 					}
-					_, err = dbase.D.Exec(fmt.Sprintf("insert into go (action) select '%s' where '%s' not in (select action from go where action='%s');", a.action, a.action, a.action))
+					_, err = dbase.D.Exec(fmt.Sprintf("insert into go (action, checkact, result, erroract) select '%s','%s','%s','%s' where '%s' not in (select action from go where action='%s');", a.action, a.checkact, a.result, a.erroract, a.action, a.action))
 					if err != nil {
 						log.Println("SQLite: Exec() ACT insert wU error: %v\n", err)
 						return -1
@@ -202,32 +230,78 @@ func cleanFCSdb(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) int {
 }
 
 func startCommand(conf sscfg.ReadJSONConfig, get string) {
-	var (
-		rLog sslog.LogFile
-	)
-	rLog.ON(conf.Conf.LOG_File, conf.Conf.LOG_Level)
-	if conf.Conf.UDR_PauseBefore > 0 {
-		rLog.Log("/|\\ Sleep ", conf.Conf.UDR_PauseBefore, " sec. before start: ", get)
-		time.Sleep(time.Duration(conf.Conf.UDR_PauseBefore) * time.Second)
-	}
-	rLog.Log("--> Start: ", get)
 	err := exec.Command(conf.Conf.UDR_Shell, conf.Conf.UDR_ShellExecParam, get+" &").Start()
 	if err != nil {
-		log.Println("\tExec error: %v\n", err)
+		log.Println("\tExec error: ", err)
 	}
-	rLog.OFF()
+}
+
+func startCommandPreCheck(conf sscfg.ReadJSONConfig, getact, getcheck, getresult, geterror string) {
+	var (
+		rLog sslog.LogFile
+		i    int
+	)
+	rLog.ON(conf.Conf.LOG_File, conf.Conf.LOG_Level)
+	defer rLog.OFF()
+	if getcheck != "" && getresult != "" {
+		if conf.Conf.UDR_PauseBefore > 0 {
+			rLog.Log("/|\\ Sleep ", conf.Conf.UDR_PauseBefore, " sec. before start PRE-APP Script: ", getcheck, " before ", getact)
+			time.Sleep(time.Duration(conf.Conf.UDR_PauseBefore) * time.Second)
+		}
+		for i = 1; i <= conf.Conf.UDR_PreAppAttempt; i++ {
+			rLog.Log("--> Start PRE-APP: ", getcheck, " before ", getact, " Attempt N ", i)
+			cmd := exec.Command(conf.Conf.UDR_Shell, conf.Conf.UDR_ShellExecParam, conf.Conf.UDR_ScriptsPath+"/"+getcheck)
+			read_result, err := cmd.CombinedOutput()
+			if err != nil {
+				log.Println("\tExec PRE-APP ", getcheck, " error: ", err)
+			}
+			xRes := strings.Replace(fmt.Sprintf("%s", read_result), "\n", "", -1)
+			if xRes == getresult {
+				rLog.Log("--> OK! PRE-APP script ", getcheck, " return ", xRes)
+				rLog.Log("--> Start: ", getact)
+				startCommand(conf, getact)
+				break
+			}
+			rLog.Log("--> Error. PRE-APP script ", getcheck, " return ", xRes, " instead of ", getresult)
+			if i >= conf.Conf.UDR_PreAppAttempt {
+				break
+			}
+			rLog.Log("/|\\ Sleep ", conf.Conf.Sleep_Time, " sec. before attempt N ", i+1, " to start PRE-APP Script: ", getcheck, " before ", getact)
+			time.Sleep(time.Duration(conf.Conf.Sleep_Time) * time.Second)
+		}
+		if i >= conf.Conf.UDR_PreAppAttempt {
+			rLog.Log("**> Error starting PRE-APP Script: ", getcheck)
+			if geterror != "" {
+				rLog.Log("--> Start: ", geterror)
+				cmd := exec.Command(conf.Conf.UDR_Shell, conf.Conf.UDR_ShellExecParam, conf.Conf.UDR_ScriptsPath+"/"+geterror)
+				read_result, err := cmd.CombinedOutput()
+				if err != nil {
+					log.Println("\tExec ERROR Script ", geterror, " error: ", err)
+				} else {
+					rLog.Log("--> OK! ERROR script ", geterror, " return ", fmt.Sprintf("%s", read_result))
+				}
+			}
+		}
+	} else {
+		if conf.Conf.UDR_PauseBefore > 0 {
+			rLog.Log("/|\\ Sleep ", conf.Conf.UDR_PauseBefore, " sec. before start: ", getact)
+			time.Sleep(time.Duration(conf.Conf.UDR_PauseBefore) * time.Second)
+		}
+		rLog.Log("--> Start: ", getact)
+		startCommand(conf, getact)
+	}
 }
 
 func restartFCS(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) int {
-	var get string
-	res, err := dbase.D.Query("select action from go;")
+	var getact, getcheck, getresult, geterror string
+	res, err := dbase.D.Query("select action, checkact, result, erroract from go;")
 	if err != nil {
 		log.Println("SQLite: Query() select actions error: %v\n", err)
 		return -1
 	}
 	for res.Next() {
-		res.Scan(&get)
-		go startCommand(conf, get)
+		res.Scan(&getact, &getcheck, &getresult, &geterror)
+		go startCommandPreCheck(conf, getact, getcheck, getresult, geterror)
 	}
 	return 1
 }
@@ -241,14 +315,36 @@ func main() {
 	)
 
 	const (
-		pName = string("SSServices / UnixDaemonReloader")
-		pVer  = string("1 2015.12.23.23.00")
+		pName       = string("SSServices / UnixDaemonReloader")
+		pVer        = string("2 2016.01.03.02.30")
+		initDBQuery = string(`PRAGMA journal_mode=WAL;
+			CREATE TABLE IF NOT EXISTS files (
+				fname varchar(255) PRIMARY KEY,
+				md5s varchar(255)
+			);
+			CREATE TABLE IF NOT EXISTS go (
+				action varchar(255) PRIMARY KEY,
+				checkact varchar(255),
+				erroract varchar(255),
+				result varchar(255)
+			);
+			delete from go;
+		`)
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)
 
 	jsonConfig.Init("./UnixDaemonReloader.log", "./UnixDaemonReloader.json")
+	/*
+		for _, xx := range jsonConfig.Conf.UDR_WatchList {
+			for _, yy := range xx {
+				fmt.Printf("%v / ", yy)
+			}
+			fmt.Println("")
+		}
 
+		os.Exit(0)
+	*/
 	rLog.ON(jsonConfig.Conf.LOG_File, jsonConfig.Conf.LOG_Level)
 	pid.ON(jsonConfig.Conf.PID_File)
 	pid.OFF()
@@ -263,20 +359,14 @@ func main() {
 	rLog.Hello(pName, pVer)
 	rLog.OFF()
 
+	dbase.Init("SQLite", jsonConfig.Conf.SQLite_DB, "DROP TABLE IF EXISTS go;")
+	dbase.Close()
+
 	for {
 		rLog.ON(jsonConfig.Conf.LOG_File, jsonConfig.Conf.LOG_Level)
 		jsonConfig.Update()
 
-		dbase.Init("SQLite", jsonConfig.Conf.SQLite_DB, `PRAGMA journal_mode=WAL;
-			CREATE TABLE IF NOT EXISTS files (
-				fname varchar(255) PRIMARY KEY,
-				md5s varchar(255)
-			);
-			CREATE TABLE IF NOT EXISTS go (
-				action varchar(255) PRIMARY KEY
-			);
-			delete from go;
-		`)
+		dbase.Init("SQLite", jsonConfig.Conf.SQLite_DB, initDBQuery)
 
 		if checkFCS(jsonConfig, rLog) > 0 {
 			restartFCS(jsonConfig, rLog)

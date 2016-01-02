@@ -3,11 +3,14 @@
 	"UDR_ShellExecParam":	"-c",
 
 	"UDR_WatchList":		[
-				["/usr/local/etc/squid","squid.conf", "/usr/local/etc/rc.d/squid.sh restart"],
-				["/etc","rc.firewall","/bin/sh /etc/rc.firewall"],
-				["/usr/local/etc/namedb/master","*","/usr/local/etc/rc.d/named restart"],
+				["/usr/local/etc/squid","squid.conf", "/usr/local/etc/rc.d/squid.sh restart","squidCheck.sh","OK","squidError.sh"],
+				["/etc","rc.firewall","/bin/sh /etc/rc.firewall","FWCheck.pl","OK","FWError.sh"],
+				["/usr/local/etc/namedb/master","*","/usr/local/etc/rc.d/named restart","","",""],
 				["/usr/local/etc/namedb","named.conf","/usr/local/etc/rc.d/named restart"]
 					],
+
+	"UDR_ScriptsPath": "/server/SSS/UnixDaemonReloader/CheckScripts",
+	"UDR_PreAppAttempt": 10,
 
 	"UDR_PauseBefore":	600,
 

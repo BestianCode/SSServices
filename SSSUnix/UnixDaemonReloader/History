@@ -1,5 +1,27 @@
-* 2015.12.23
+* V2 2016.01.02
+    Добавлены параметры "скрипт предварительной проверки", "результат удачной проверки" и "скрипт в случае ошибки проверки" в список файлов для отслеживания в кофигурационном файле. Скрипт предварительной проверки должен возвращать результат проверки на стандартный вывод. Например: "OK". Если Возвращенное текстовое значение равно тому что в конфиге - выполняется скрипт перезапуска, иначе после окончания попыток проверки исполнится скрипт ошибки. Смотри README.md для ознакомления с новым синтаксисом.
+
+    PS: Вы можете добавить в скрипт предварительной проверки например проверку конфига на правильность или бекап конфига. В скрипт ошибки тоже можно добавить отправку E-Mail, SMS или возврат копии конфига из бэкапа.
+
+    Добавлен параметр UDR_ScriptsPath, указывающий путь к предварительным скриптам.
+
+    Добавлен параметр UDR_PreAppAttempt, указывающий количество попыток исполнения скрипта предварительной проверки, поселе чего исполняется скрипт обработки ошибки или попытки прекращаются.
+
+    Исправлен тотальный перезапуск всего и вся после первого создания базы файлов.
+
+    Added parameters "pre-app script", "result of pre-app script" and "error script" into listing of files for watching. "Pre-app" script must to return result to stdout. Example for return: "OK" :) If returned value equals value from configuration file, will running script for restarting or reloading service, else after ending amount of attempts to execute "pre-app", will running "error script". See README.md for study new syntax of WatchList.
+
+	PS: You can add into "pre-app script" syntax check and backup configuration file. "Error script" may contain sending E-Mail or SMS and restore from backup copy of the config.
+
+    Added parameter UDR_ScriptsPath, pointing the path to pre-app scripts.
+
+	Added parameter UDR_PreAppAttempt, indicating the number of executing times the "pre-app" script, after that execute "error-script" or stop attempts.
+
+    Fixed restart for all services after first initialize database of files
+
+* V1 2015.12.23
     Добавлен параметр UDR_PauseBefore - задержка перед выполнением скрипта
+
     Added parameter UDR_PauseBefore - pause before running the script
-* 2015.12.07
+* V1 2015.12.07
     :)

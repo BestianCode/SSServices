@@ -17,22 +17,30 @@
 #####	"UDR_ShellExecParam":	"-c",
 
 * _в виде списка задаем строки с отслеживаемыми файлами и каталогами_
-######   "/каталог", "файл", "действие",
-######   "/каталог", "маска\*файла\*", "действие",
-######   "/каталог", "!все\*файлы\*кроме\*этого,!кроме\*этого,!и\*кроме\*этого", "действие"
+######   ["/каталог", "файл", "действие", "предварительное действие", "результат предварительного действия","скрипт ошибки предварительного действия"],
+######   ["/каталог", "маска\*файла\*", "действие", "", "",""],
+######   ["/каталог", "!все\*файлы\*кроме\*этого,!кроме\*этого,!и\*кроме\*этого", "действие"]
 
 * _specify a list of strings to track files and directories_
-######   "/directory", "file", "action",
-######   "/directory", "mask\*of\*the\*files\*", "action",
-######   "/directory", "!all\*files\*except\*this,!except\*this,!and\*except\*this", "action"
+######   ["/directory", "file", "action", "pre-app script", "result of pre-app script","error script"],
+######   ["/directory", "mask\*of\*the\*files\*", "action", "", "",""],
+######   ["/directory", "!all\*files\*except\*this,!except\*this,!and\*except\*this", "action"]
 
 #####	"UDR_WatchList":		[
-#####				["/etc/postfix", "main.cf", "/etc/init.d/postfix reload"],
-#####				["/etc/postfix", "master.cf", "/etc/init.d/postfix reload"],
-#####				["/etc/amavis/conf.d", "\*", "/etc/init.d/amavis restart"],
-#####				["/etc/spamassassin", "local.cf", "/etc/init.d/spamassassin reload"],
+#####				["/etc/postfix", "main.cf", "/etc/init.d/postfix reload","postfixCheck.sh","OK","postfixError.sh"],
+#####				["/etc/postfix", "master.cf", "/etc/init.d/postfix reload","postfixCheck.sh","OK","postfixError.sh"],
+#####				["/etc/amavis/conf.d", "\*", "/etc/init.d/amavis restart","","",""],
+#####				["/etc/spamassassin", "local.cf", "/etc/init.d/spamassassin reload","","",""],
 #####				["/etc","iptables.conf","/server/scripts/iptables/rest.sh"]
 #####					],
+
+* _путь до папки со скриптами предварительной проверки._
+* _path to "pre-app scripts"._
+#####   "UDR_ScriptsPath": "/server/SSS/UnixDaemonReloader/CheckScripts",
+
+* _количество попыток исполнения файла проверки конфигурации._
+* _Number of attempts to try execute "pre-app scripts"._
+#####   "UDR_PreAppAttempt": 10,
 
 * _пауза в секундах перед запуском скрипта. Этот параметр сделан для того, что бы если вы вдруг случайно во время редактирования конфига сохранили файл "недоделанным", то у вас было время на исправление ошибки до перезапуска демона._
 * _pause before running the script (seconds). This setting for save your daemons from "your hands". If you during editing configuration file, accidentally press "save a file" with error or unfinished, then you have time to correct the error before the daemon will be restarted._
