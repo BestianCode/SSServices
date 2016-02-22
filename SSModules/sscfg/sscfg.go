@@ -12,6 +12,7 @@ type ReadJSONConfig struct {
 	Config_file string
 	Daemon_mode string
 	Phase       string
+	Keys        string
 	Conf        struct {
 		PG_DSN              string
 		MY_DSN              string
@@ -63,6 +64,9 @@ type ReadJSONConfig struct {
 		SQH_AD_GroupMember  string
 		CardDAVIPSuffix     []string
 		SQL_Engine          string
+		SQL_QUE1            string
+		SQL_QUE2            string
+		SQL_QUE3            string
 		E2O_JDomain         string
 		E2O_passwd          string
 		E2O_roster          string
@@ -73,6 +77,8 @@ type ReadJSONConfig struct {
 		E2O_VCD_MY_DSN      string
 		E2O_Name_Update     string
 		E2O_Name_PG_DSN     string
+		BMDS_TitleDir       string
+		BMDS_BodyDir        string
 	}
 }
 
@@ -110,10 +116,12 @@ func (_s *ReadJSONConfig) _parseCommandLine() {
 	cp := flag.String("config", _s.Config_file, "Path to Configuration file")
 	dp := flag.String("daemon", _s.Daemon_mode, "Fork as system daemon (YES or NO)")
 	pp := flag.String("phase", _s.Phase, "select work phase (1,2,3)")
+	ep := flag.String("keys", _s.Keys, "\"[State Code (wordpress)] [State name] [State short name] [Country] [From mail] [test/r]\"")
 	flag.Parse()
 	_s.Config_file = *cp
 	_s.Daemon_mode = *dp
 	_s.Phase = *pp
+	_s.Keys = *ep
 	//fmt.Println(*cp, "\n", *dp, "\n", os.Args, "\n")
 }
 
