@@ -35,11 +35,11 @@
 #####	],
 
 * _путь до папки со скриптами предварительной проверки._
-* _path to "pre-app scripts"._
+* _path to "pre-app" scripts._
 #####	"UDR_ScriptsPath":	"/server/SSS/UnixDaemonReloader/CheckScripts",
 
 * _количество попыток исполнения файла проверки конфигурации._
-* _Number of attempts to try execute "pre-app scripts"._
+* _Number of attempts to try execute "pre-app" scripts._
 #####	"UDR_PreAppAttempt":	10,
 
 * _пауза в секундах перед запуском скрипта. Этот параметр сделан для того, что бы если вы вдруг случайно во время редактирования конфига сохранили файл "недоделанным", то у вас было время на исправление ошибки до перезапуска демона._
