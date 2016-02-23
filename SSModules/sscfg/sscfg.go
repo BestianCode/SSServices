@@ -81,6 +81,7 @@ type ReadJSONConfig struct {
 		BMDS_BodyDir        string
 		BMDS_SenderName     string
 		BMDS_MaxInstances   int
+		BMDS_IPList         []string
 	}
 }
 
