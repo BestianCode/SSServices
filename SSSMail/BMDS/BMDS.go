@@ -242,6 +242,8 @@ func main() {
 	rLog.Hello(pName, pVer)
 	defer rLog.OFF()
 
+	jsonConfig.Conf.SQL_Engine = "MY"
+
 	x := strings.Split(jsonConfig.Keys, " ")
 
 	if len(x) > 4 {
