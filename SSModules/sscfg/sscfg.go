@@ -79,6 +79,8 @@ type ReadJSONConfig struct {
 		E2O_Name_PG_DSN     string
 		BMDS_TitleDir       string
 		BMDS_BodyDir        string
+		BMDS_SenderName     string
+		BMDS_MaxInstances   int
 	}
 }
 

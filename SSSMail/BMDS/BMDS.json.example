@@ -11,7 +11,11 @@
 	"BMDS_TitleDir":	"titles/",
 	"BMDS_BodyDir":		"mail/",
 
+	"BMDS_SenderName":	"Qakadeals",
+
+	"BMDS_MaxInstances":	100,
+
 	"LOG_File":		"./BMDS.log",
 
-	"LogLevel":		3
+	"Log_Level":		3
 }

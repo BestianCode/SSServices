@@ -2,16 +2,43 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/smtp"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/BestianRU/SSServices/SSModules/sscfg"
 	"github.com/BestianRU/SSServices/SSModules/sslog"
 	"github.com/BestianRU/SSServices/SSModules/sssql"
+)
+
+var (
+	instOfSenders int
+	cntSucc       int
+	cntFail       int
+	cntAll        int
+
+	SQLCreateTable1 = string(`
+create table if not exists bmds_domain (
+	id int(10) unsigned not null auto_increment,
+	domain varchar(255),
+	primary key(id),
+	unique key(domain)
+) engine=innodb;`)
+	SQLCreateTable2 = string(`
+create table if not exists bmds_mx (
+	id int(10) unsigned not null auto_increment,
+	pid int(10) unsigned not null,
+	mx varchar(255),
+	ip int unsigned,
+	weight int unsigned,
+	primary key(id)
+) engine=innodb;`)
 )
 
 type queryParam struct {
@@ -20,6 +47,36 @@ type queryParam struct {
 	StateNameShort string
 	Country        string
 	From           string
+}
+
+func mailCreate(prm queryParam, to, subject string, bodyTXT, bodyHTML []byte, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) ([]byte, bool) {
+	t := time.Now()
+	rnd := t.Format("20060102.150405")
+	senderDomain := strings.Split(prm.From, "@")
+
+	msg := []byte("From: " + conf.Conf.BMDS_SenderName + " <" + prm.From + ">\r\n" +
+		"Return-Path: <" + prm.From + ">\r\n" +
+		"Message-ID: <" + rnd + "@" + senderDomain[len(senderDomain)-1] + ">\r\n" +
+		"X-Mailjet-Campaign: " + subject + "\r\n" +
+		"To: " + to + "\r\n" +
+		"List-Unsubscribe: <mailto:qaka@qakadeals.com?subject=unsubscribe>\r\n" +
+		"Subject: " + subject + "\r\n" +
+		"MIME-Version: 1.0\r\n" +
+		"Content-Type: multipart/alternative; boundary=NextPart_" + rnd + "\r\n" +
+		"\r\n" +
+		"--NextPart_" + rnd + "\r\n" +
+		"Content-Type: text/plain; charset=utf-8\r\n" +
+		"\r\n" +
+		fmt.Sprintf("%s", bodyTXT) + "\r\n" +
+		"\r\n" +
+		"--NextPart_" + rnd + "\r\n" +
+		"Content-Type: text/html; charset=utf-8\r\n" +
+		"\r\n" +
+		fmt.Sprintf("%s", bodyHTML) + "\r\n" +
+		"\r\n" +
+		"--NextPart_" + rnd + "\r\n")
+
+	return msg, true
 }
 
 func mailGetSubject(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) (string, bool) {
@@ -31,6 +88,8 @@ func mailGetSubject(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFil
 		rLog.Log("Error open title file!")
 		return "", false
 	}
+	tl = strings.Replace(tl, "\r", "", -1)
+	tl = strings.Replace(tl, "\n", "", -1)
 	return tl, true
 }
 
@@ -99,50 +158,67 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 	}
 	for rows.Next() {
 		rows.Scan(&mail)
+		cntAll++
+		fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
 		mx, statusMX := mailGetMX(mail)
 		if statusMX {
-			fmt.Printf("From: %s\n", prm.From)
-			fmt.Printf("  To: %s\n", mail)
-			fmt.Printf("Subj: %s\n", tl)
-			fmt.Printf("------------\n%s\n------------\n", bodyTXT)
-			fmt.Printf("------------\n%s\n------------\n", bodyHTML)
-			for _, smx := range mx {
-				fmt.Printf("\t\tMX: %s\n", smx.Host)
+			fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf, rLog)
+			if statusFM {
+				for {
+					if instOfSenders < conf.Conf.BMDS_MaxInstances {
+						break
+					}
+				}
+				//rLog.LogDbg(3, "PREP ", prm.From, " -> ", mail)
+				go mailSendMXRotate(fullMail, prm.From, mail, mx, conf, rLog)
 			}
 		}
 	}
-
 	return true
 }
 
-//func updateMX(conf sscfg.ReadJSONConfig, rLog sslog.LogFile) {
-
-/*
-	sql_sel = strings.Replace(conf.Conf.SQH_SQL_IPUpdate, "{USER}", user, -1)
-	sql_sel = strings.Replace(sql_sel, "{DOMAIN}", domain, -1)
-	sql_sel = strings.Replace(sql_sel, "{IP}", ip, -1)
-
-	switch strings.ToLower(conf.Conf.SQL_Engine) {
-	case "pg":
-		DBase.Init("PG", conf.Conf.PG_DSN, sql_sel)
-		_, err = DBase.D.Query(sql_sel)
-	case "my":
-		DBase.Init("MY", conf.Conf.MY_DSN, sql_sel)
-		_, err = DBase.D.Query(sql_sel)
-	default:
-		rLog.LogDbg(0, "SQL Engine select error! (PG|MY)")
-		return -1
+func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) {
+	//rLog.LogDbg(3, "MX ROTATE ", headFrom, " -> ", headTo)
+	instOfSenders++
+	for _, mx := range servers {
+		if mailSend(body, headFrom, headTo, mx.Host, conf, rLog) {
+			cntSucc++
+			break
+		}
+		cntFail++
 	}
+	instOfSenders--
+}
 
-	defer DBase.Close()
-
+func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) bool {
+	//rLog.LogDbg(3, "MAIL SEND ", headFrom, " -> ", headTo)
+	c, err := smtp.Dial(server + ":25")
 	if err != nil {
-		rLog.LogDbg(0, "SQL: Query() select user/pass error: %v\n", err)
-		return -1
+		rLog.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo)
+		rLog.Log(err)
+		return false
 	}
-	return 0
-*/
-//}
+	defer c.Close()
+	c.Mail(headFrom)
+	c.Rcpt(headTo)
+
+	wc, err := c.Data()
+	if err != nil {
+		rLog.Log("Body ", headFrom, "->", headTo, " error")
+		//rLog.LogDbg(3, "BODY ", string(body))
+		rLog.Log(err)
+		return false
+	}
+	defer wc.Close()
+
+	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
+	if _, err = buf.WriteTo(wc); err != nil {
+		rLog.Log("Send ", headFrom, "->", headTo, " error")
+		rLog.Log(err)
+	}
+	rLog.Log(headFrom, "->", headTo, " via ", server, " - Sent")
+	return true
+}
 
 func main() {
 
@@ -151,8 +227,6 @@ func main() {
 		rLog       sslog.LogFile
 		prm        queryParam
 		DBase      sssql.USQL
-		//err           error
-		//sleep_counter = int(0)
 	)
 
 	const (
@@ -171,12 +245,17 @@ func main() {
 	x := strings.Split(jsonConfig.Keys, " ")
 
 	if len(x) > 4 {
+
 		prm.StateCode, _ = strconv.Atoi(x[0])
 		prm.StateName = x[1]
 		prm.StateNameShort = x[2]
 		prm.Country = x[3]
 		prm.From = x[4]
+
 		DBase.Init("MY", jsonConfig.Conf.MY_DSN, "")
+		DBase.QSimple(SQLCreateTable1)
+		DBase.QSimple(SQLCreateTable2)
+
 		defer DBase.Close()
 		if !mailPrepare(prm, jsonConfig, rLog, DBase) {
 			fmt.Println("mailPrepare Error!")
@@ -189,4 +268,14 @@ func main() {
 		fmt.Println("Command Line Error!")
 		rLog.Log("Command Line Error!")
 	}
+
+	for {
+		if instOfSenders > 0 {
+			rLog.Log("Wait for complete all GoT|Routines: ", instOfSenders)
+		} else {
+			break
+		}
+		time.Sleep(time.Duration(10) * time.Second)
+	}
+	rLog.Log("Bye!")
 }
