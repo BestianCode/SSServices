@@ -6,10 +6,9 @@
 
 	"BMDS_TitleDir":	"titles/",
 	"BMDS_BodyDir":		"mail/",
-
 	"BMDS_SenderName":	"Qakadeals",
-
 	"BMDS_MaxInstances":	100,
+	"BDMS_DKIMKey":		"./dkim.key",
 
 	"LOG_File":		"./BMDS.log",
 

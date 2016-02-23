@@ -37,7 +37,8 @@ create table if not exists bmds_mx (
 	mx varchar(255),
 	ip int unsigned,
 	weight int unsigned,
-	primary key(id)
+	primary key(id),
+	unique (pid,mx,ip)
 ) engine=innodb;`)
 )
 
@@ -113,15 +114,75 @@ func mailGetBody(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) 
 	return contents1, contents2, true
 }
 
-func mailGetMX(name string) ([]*net.MX, bool) {
+func mailGetMX(name string, rLog sslog.LogFile, dbase sssql.USQL) ([]*net.MX, bool) {
+	var (
+		mx    []*net.MX
+		tmx   net.MX
+		query string
+		xid   int
+	)
 	parts := strings.Split(name, "@")
 	if len(parts) < 2 {
 		return nil, false
 	}
+
+	query = "select inet_ntoa(x.ip),x.weight from bmds_mx as x left join bmds_domain as y on (x.pid=y.id) where y.domain='" + parts[len(parts)-1] + "';"
+	//rLog.LogDbg(3, "DNS Search: ", query)
+	rows, err := dbase.D.Query(query)
+	if err != nil {
+		rLog.Log("SQL::Query() error: ", err)
+		rLog.Log(query)
+		return nil, false
+	}
+	for rows.Next() {
+		rows.Scan(&tmx.Host, &tmx.Pref)
+		mx = append(mx, &tmx)
+	}
+
+	rows.Close()
+
+	if len(mx) > 0 {
+		rLog.LogDbg(3, "NAME GET: SQL")
+		return mx, true
+	}
+
 	mxs, err := net.LookupMX(parts[len(parts)-1])
 	if err != nil {
 		return nil, false
 	}
+	rLog.LogDbg(3, "NAME GET: DNS")
+
+	query = "insert into bmds_domain (domain) values ('" + parts[len(parts)-1] + "');"
+	dbase.Silent = 1
+	_ = dbase.QSimple(query)
+	dbase.Silent = 0
+
+	query = "select id from bmds_domain where domain='" + parts[len(parts)-1] + "';"
+	rows, err = dbase.D.Query(query)
+	if err != nil {
+		rLog.Log("SQL::Query() error: ", err)
+		rLog.Log(query)
+		return nil, false
+	}
+	rows.Next()
+	rows.Scan(&xid)
+	rows.Close()
+
+	dbase.Silent = 1
+	for _, mxi := range mxs {
+		lnameArray, err := net.LookupIP(mxi.Host)
+		if err != nil {
+			continue
+		}
+		for _, lname := range lnameArray {
+			//fmt.Printf("%s\n", lname)
+			query = "insert into bmds_mx (pid,mx,ip,weight) values (" + strconv.Itoa(xid) + ",'" + mxi.Host + "',inet_aton('" + fmt.Sprintf("%s", lname) + "')," + strconv.Itoa(int(mxi.Pref)) + ");"
+			//rLog.LogDbg(3, "Insert IP: ", query)
+			_ = dbase.QSimple(query)
+		}
+
+	}
+	dbase.Silent = 0
 	return mxs, true
 }
 
@@ -160,7 +221,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 		rows.Scan(&mail)
 		cntAll++
 		fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
-		mx, statusMX := mailGetMX(mail)
+		mx, statusMX := mailGetMX(mail, rLog, dbase)
 		if statusMX {
 			fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf, rLog)
 			if statusFM {
@@ -174,6 +235,8 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 			}
 		}
 	}
+	rows.Close()
+
 	return true
 }
 
@@ -191,11 +254,12 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, c
 }
 
 func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) bool {
-	//rLog.LogDbg(3, "MAIL SEND ", headFrom, " -> ", headTo)
+	//	rLog.LogDbg(3, "MAIL SEND ", headFrom, " -> ", headTo, " ---> ", server)
+	//	time.Sleep(time.Duration(10) * time.Second)
+	//	return true
 	c, err := smtp.Dial(server + ":25")
 	if err != nil {
-		rLog.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo)
-		rLog.Log(err)
+		rLog.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
 		return false
 	}
 	defer c.Close()
@@ -204,17 +268,15 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	wc, err := c.Data()
 	if err != nil {
-		rLog.Log("Body ", headFrom, "->", headTo, " error")
-		//rLog.LogDbg(3, "BODY ", string(body))
-		rLog.Log(err)
+		rLog.Log("Body ", headFrom, "->", headTo, " error /// ", err)
 		return false
 	}
 	defer wc.Close()
 
 	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
 	if _, err = buf.WriteTo(wc); err != nil {
-		rLog.Log("Send ", headFrom, "->", headTo, " error")
-		rLog.Log(err)
+		rLog.Log("Send ", headFrom, "->", headTo, " error /// ", err)
+		return false
 	}
 	rLog.Log(headFrom, "->", headTo, " via ", server, " - Sent")
 	return true

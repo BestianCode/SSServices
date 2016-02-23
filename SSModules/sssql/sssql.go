@@ -17,6 +17,7 @@ import (
 
 type USQL struct {
 	D      *sql.DB
+	Silent int
 	Engine string
 }
 
@@ -78,8 +79,10 @@ func (_s *USQL) QSimple(query ...interface{}) int {
 	}
 	res, err := _s.D.Query(queryGo)
 	if err != nil {
-		log.Printf("SQL::Query() QSimple error: %v\n", err)
-		log.Printf("Query: %s\n", queryGo)
+		if _s.Silent != 1 {
+			log.Printf("SQL::Query() QSimple error: %v\n", err)
+			log.Printf("Query: %s\n", queryGo)
+		}
 		return -1
 	}
 
