@@ -82,6 +82,7 @@ type ReadJSONConfig struct {
 		BMDS_SenderName     string
 		BMDS_MaxInstances   int
 		BMDS_IPList         []string
+		BMDS_SlowMail       []string
 	}
 }
 

@@ -127,8 +127,8 @@ func mailGetMX(name string, rLog sslog.LogFile, dbase sssql.USQL) ([]*net.MX, bo
 		return nil, false
 	}
 
-	query = "select distinct inet_ntoa(x.ip) from bmds_mx as x left join bmds_domain as y on (x.pid=y.id) where y.domain='" + parts[len(parts)-1] + "';"
-	//rLog.LogDbg(3, "DNS Search: ", query)
+	query = "select distinct inet_ntoa(x.ip) from bmds_mx as x left join bmds_domain as y on (x.pid=y.id) where y.domain='" + parts[len(parts)-1] + "' and inet_ntoa(x.ip) like '%.%.%.%';"
+	rLog.LogDbg(3, "DNS Search: ", query)
 	rows, err := dbase.D.Query(query)
 	if err != nil {
 		rLog.Log("SQL::Query() error: ", err)
@@ -136,7 +136,7 @@ func mailGetMX(name string, rLog sslog.LogFile, dbase sssql.USQL) ([]*net.MX, bo
 		return nil, false
 	}
 	for rows.Next() {
-		rows.Scan(&tmx.Host, &tmx.Pref)
+		rows.Scan(&tmx.Host)
 		mx = append(mx, &tmx)
 	}
 
@@ -265,25 +265,32 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	var (
 		x     int
 		query string
+		slow  = int(0)
 	)
+
 	if len(conf.Conf.BMDS_IPList) > 1 {
 		x = rand.Intn(len(conf.Conf.BMDS_IPList) - 1)
 	} else {
 		x = 0
 	}
-	//rLog.LogDbg(3, "MAIL SEND ", conf.Conf.BMDS_IPList[x], " ])> ", headFrom, " -> ", headTo, " ---> ", server)
-	//time.Sleep(time.Duration(10) * time.Second)
-	//return true
+
+	senderDomain := strings.Split(headTo, "@")
+	for _, slowx := range conf.Conf.BMDS_SlowMail {
+		if senderDomain[len(senderDomain)-1] == slowx {
+			slow = 10
+			rLog.Log("slow for: ", slowx)
+		}
+	}
+
+	time.Sleep(time.Duration(slow) * time.Second)
 
 	ief, err := net.InterfaceByName(conf.Conf.BMDS_IPList[x])
-	//fmt.Printf("%v\n", ief)
 
 	if err != nil {
 		rLog.Log("net.InterfaceByName /// ", err)
 		return false
 	}
 	addrs, err := ief.Addrs()
-	//fmt.Printf("%v\n", addrs)
 	if err != nil {
 		rLog.Log("ief.Addrs /// ", err)
 		return false
@@ -298,7 +305,6 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	tcpAddr := &net.TCPAddr{IP: addrs[x].(*net.IPNet).IP}
 
 	d := net.Dialer{Timeout: time.Duration(10) * time.Second, LocalAddr: tcpAddr}
-	//fmt.Printf("%v\n", d)
 	conn, err := d.Dial("tcp4", server+":25")
 	if err != nil {
 		rLog.Log("d.Dial /// ", err)

@@ -9,15 +9,17 @@
 	"BMDS_SenderName":	"My test company",
 	"BMDS_MaxInstances":	100,
 	"BDMS_DKIMKey":		"./dkim.key",
+
 	"BMDS_IPList":		[
-							"99.88.77.61",
-							"99.88.77.62",
-							"99.88.77.63",
-							"99.88.77.64",
-							"99.88.77.65",
-							"99.88.77.66",
-							"99.88.77.67"
-						],
+					"eth0",
+					"eth1"
+				],
+
+	"BMDS_SlowMail":	[
+					"gmail.com",
+					"hotmail.com",
+					"yahoo.com"
+				],
 
 	"LOG_File":		"./BMDS.log",
 
