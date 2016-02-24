@@ -275,7 +275,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		return false
 	}
 	addrs, err := ief.Addrs()
-	fmt.Printf("%v\n", addrs)
+	//fmt.Printf("%v\n", addrs)
 	if err != nil {
 		rLog.Log("ief.Addrs /// ", err)
 		return false
