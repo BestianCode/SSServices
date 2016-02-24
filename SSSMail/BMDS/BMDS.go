@@ -257,12 +257,38 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, c
 }
 
 func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) bool {
-	x := rand.Intn(len(conf.Conf.BMDS_IPList))
-	rLog.LogDbg(3, "MAIL SEND ", conf.Conf.BMDS_IPList[x], " ])> ", headFrom, " -> ", headTo, " ---> ", server)
-	//net.Dialer.LocalAddr =
-	time.Sleep(time.Duration(10) * time.Second)
-	return true
-	c, err := smtp.Dial(server + ":25")
+	//x := rand.Intn(len(conf.Conf.BMDS_IPList) - 1)
+	//rLog.LogDbg(3, "MAIL SEND ", conf.Conf.BMDS_IPList[x], " ])> ", headFrom, " -> ", headTo, " ---> ", server)
+	//time.Sleep(time.Duration(10) * time.Second)
+	//return true
+
+	//ief, err := net.InterfaceByName(conf.Conf.BMDS_IPList[x])
+	ief, err := net.InterfaceByName("eth1")
+	fmt.Printf("%v\n", ief)
+	if err != nil {
+		rLog.Log("net.InterfaceByName /// ", err)
+		return false
+	}
+	addrs, err := ief.Addrs()
+	fmt.Printf("%v\n", addrs)
+	if err != nil {
+		rLog.Log("ief.Addrs /// ", err)
+		return false
+	}
+
+	tcpAddr := &net.TCPAddr{IP: addrs[rand.Intn(len(addrs)-1)].(*net.IPNet).IP}
+
+	d := net.Dialer{LocalAddr: tcpAddr}
+	conn, err := d.Dial("tcp4", server+":25")
+	if err != nil {
+		rLog.Log("d.Dial /// ", err)
+		return false
+	}
+
+	host, _, _ := net.SplitHostPort(server + ":25")
+	c, err := smtp.NewClient(conn, host)
+
+	//c, err := smtp.Dial(server + ":25")
 	if err != nil {
 		rLog.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
 		return false
@@ -283,7 +309,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		rLog.Log("Send ", headFrom, "->", headTo, " error /// ", err)
 		return false
 	}
-	rLog.Log(headFrom, "->", headTo, " via ", server, " - Sent")
+	rLog.Log("(IP:", tcpAddr, ") ", headFrom, "->", headTo, " via ", server, " - Sent")
 	return true
 }
 
