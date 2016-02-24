@@ -23,6 +23,7 @@ var (
 	cntSucc       int
 	cntFail       int
 	cntAll        int
+	slowSend      map[string]int64
 
 	SQLCreateTable1 = string(`
 create table if not exists bmds_domain (
@@ -221,22 +222,27 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 	for rows.Next() {
 		rows.Scan(&mail)
 		cntAll++
-		fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
+		if int(cntAll/10)*10 == cntAll {
+			fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
+		}
+
 		mx, statusMX := mailGetMX(mail, rLog, dbase)
 		if statusMX {
 			fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf, rLog)
 			if statusFM {
-				for {
-					if instOfSenders < conf.Conf.BMDS_MaxInstances {
-						break
+				if instOfSenders >= conf.Conf.BMDS_MaxInstances {
+					for {
+						if instOfSenders < conf.Conf.BMDS_MaxInstances {
+							break
+						}
+						rLog.Log("Wait for Goroutines: ", instOfSenders, " (Allowed:", conf.Conf.BMDS_MaxInstances, ")")
+						time.Sleep(time.Duration(2) * time.Second)
 					}
-					rLog.Log("Wait for Goroutines: ", instOfSenders, " (Allowed:", conf.Conf.BMDS_MaxInstances, ")")
-					time.Sleep(time.Duration(2) * time.Second)
 				}
-				//rLog.LogDbg(3, "PREP ", prm.From, " -> ", mail)
 				go mailSendMXRotate(fullMail, prm.From, mail, mx, conf, rLog, dbase)
 			}
 		}
+
 	}
 	rows.Close()
 
@@ -265,7 +271,6 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	var (
 		x     int
 		query string
-		slow  = int(0)
 	)
 
 	if len(conf.Conf.BMDS_IPList) > 1 {
@@ -273,16 +278,6 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	} else {
 		x = 0
 	}
-
-	senderDomain := strings.Split(headTo, "@")
-	for _, slowx := range conf.Conf.BMDS_SlowMail {
-		if senderDomain[len(senderDomain)-1] == slowx {
-			slow = 10
-			rLog.Log("slow for: ", slowx)
-		}
-	}
-
-	time.Sleep(time.Duration(slow) * time.Second)
 
 	ief, err := net.InterfaceByName(conf.Conf.BMDS_IPList[x])
 
@@ -305,6 +300,21 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	tcpAddr := &net.TCPAddr{IP: addrs[x].(*net.IPNet).IP}
 
 	d := net.Dialer{Timeout: time.Duration(10) * time.Second, LocalAddr: tcpAddr}
+
+	timeNow := time.Now()
+
+	senderDomain := strings.Split(headTo, "@")
+	for _, slowx := range conf.Conf.BMDS_SlowMail {
+		if senderDomain[len(senderDomain)-1] == slowx {
+			if int64(slowSend[fmt.Sprintf("%v", tcpAddr)]) > int64(0) {
+				if (timeNow.Unix() - slowSend[fmt.Sprintf("%v", tcpAddr)]) < 5 {
+					rLog.Log("slow for: ", slowx, " on ", fmt.Sprintf("%v", tcpAddr))
+					time.Sleep(time.Duration(5) * time.Second)
+				}
+			}
+		}
+	}
+
 	conn, err := d.Dial("tcp4", server+":25")
 	if err != nil {
 		rLog.Log("d.Dial /// ", err)
@@ -323,6 +333,8 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		rLog.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
 		query = "update members set status=-33 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
+		timeNow = time.Now()
+		slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 		return false
 	}
 	defer c.Close()
@@ -335,7 +347,8 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 		query = "update members set status=-32 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
-
+		timeNow = time.Now()
+		slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 		return false
 	}
 	defer wc.Close()
@@ -346,10 +359,13 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 		query = "update members set status=-31 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
-
+		timeNow = time.Now()
+		slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 		return false
 	}
-	rLog.Log("(IP:", tcpAddr, ") ", headFrom, "->", headTo, " via ", server, " - Sent")
+	rLog.Log("(IP:", fmt.Sprintf("%v", tcpAddr), ") ", headFrom, "->", headTo, " via ", server, " - Sent")
+	timeNow = time.Now()
+	slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 	return true
 }
 
@@ -379,6 +395,8 @@ func main() {
 	jsonConfig.Conf.SQL_Engine = "MY"
 
 	x := strings.Split(jsonConfig.Keys, " ")
+
+	slowSend = make(map[string]int64, 1000)
 
 	if len(x) > 4 {
 
@@ -423,4 +441,6 @@ func main() {
 	}
 	fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
 	rLog.Log("Bye!")
+
+	fmt.Printf("%v\n", slowSend)
 }
