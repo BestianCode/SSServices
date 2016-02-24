@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/smtp"
 	"os"
@@ -229,6 +230,8 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 					if instOfSenders < conf.Conf.BMDS_MaxInstances {
 						break
 					}
+					rLog.Log("Wait for Goroutines: ", instOfSenders, " (Allowed:", conf.Conf.BMDS_MaxInstances, ")")
+					time.Sleep(time.Duration(2) * time.Second)
 				}
 				//rLog.LogDbg(3, "PREP ", prm.From, " -> ", mail)
 				go mailSendMXRotate(fullMail, prm.From, mail, mx, conf, rLog)
@@ -254,9 +257,11 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, c
 }
 
 func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) bool {
-	//	rLog.LogDbg(3, "MAIL SEND ", headFrom, " -> ", headTo, " ---> ", server)
-	//	time.Sleep(time.Duration(10) * time.Second)
-	//	return true
+	x := rand.Intn(len(conf.Conf.BMDS_IPList))
+	rLog.LogDbg(3, "MAIL SEND ", conf.Conf.BMDS_IPList[x], " ])> ", headFrom, " -> ", headTo, " ---> ", server)
+	//net.Dialer.LocalAddr =
+	time.Sleep(time.Duration(10) * time.Second)
+	return true
 	c, err := smtp.Dial(server + ":25")
 	if err != nil {
 		rLog.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
@@ -335,7 +340,7 @@ func main() {
 
 	for {
 		if instOfSenders > 0 {
-			rLog.Log("Wait for complete all GoT|Routines: ", instOfSenders)
+			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
 		} else {
 			break
 		}
