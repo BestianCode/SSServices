@@ -226,21 +226,18 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 			fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
 		}
 
-		mx, statusMX := mailGetMX(mail, rLog, dbase)
-		if statusMX {
-			fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf, rLog)
-			if statusFM {
-				if instOfSenders >= conf.Conf.BMDS_MaxInstances {
-					for {
-						if instOfSenders < conf.Conf.BMDS_MaxInstances {
-							break
-						}
-						rLog.Log("Wait for Goroutines: ", instOfSenders, " (Allowed:", conf.Conf.BMDS_MaxInstances, ")")
-						time.Sleep(time.Duration(2) * time.Second)
+		fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf, rLog)
+		if statusFM {
+			if instOfSenders >= conf.Conf.BMDS_MaxInstances {
+				for {
+					if instOfSenders < conf.Conf.BMDS_MaxInstances {
+						break
 					}
+					rLog.Log("Wait for Goroutines: ", instOfSenders, " (Allowed:", conf.Conf.BMDS_MaxInstances, ")")
+					time.Sleep(time.Duration(2) * time.Second)
 				}
-				go mailSendMXRotate(fullMail, prm.From, mail, mx, conf, rLog, dbase)
 			}
+			go mailSendMXRotate(fullMail, prm.From, mail, conf, rLog, dbase)
 		}
 
 	}
@@ -249,20 +246,25 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 	return true
 }
 
-func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, dbase sssql.USQL) {
+func mailSendMXRotate(body []byte, headFrom, headTo string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, dbase sssql.USQL) {
 	var count = int(10)
-	//rLog.LogDbg(3, "MX ROTATE ", headFrom, " -> ", headTo)
+
 	instOfSenders++
-	for _, mx := range servers {
-		if count < 1 {
-			break
+	//fmt.Printf("X\n")
+	servers, statusMX := mailGetMX(headTo, rLog, dbase)
+	//fmt.Printf("Y%v\n", servers)
+	if statusMX {
+		for _, mx := range servers {
+			if count < 1 {
+				break
+			}
+			count--
+			if mailSend(body, headFrom, headTo, mx.Host, conf, rLog, dbase) {
+				cntSucc++
+				break
+			}
+			cntFail++
 		}
-		count--
-		if mailSend(body, headFrom, headTo, mx.Host, conf, rLog, dbase) {
-			cntSucc++
-			break
-		}
-		cntFail++
 	}
 	instOfSenders--
 }
