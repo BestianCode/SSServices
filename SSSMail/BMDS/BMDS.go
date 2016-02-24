@@ -128,7 +128,7 @@ func mailGetMX(name string, rLog sslog.LogFile, dbase sssql.USQL) ([]*net.MX, bo
 	}
 
 	query = "select distinct inet_ntoa(x.ip) from bmds_mx as x left join bmds_domain as y on (x.pid=y.id) where y.domain='" + parts[len(parts)-1] + "' and inet_ntoa(x.ip) like '%.%.%.%';"
-	rLog.LogDbg(3, "DNS Search: ", query)
+	//rLog.LogDbg(3, "DNS Search: ", query)
 	rows, err := dbase.D.Query(query)
 	if err != nil {
 		rLog.Log("SQL::Query() error: ", err)
