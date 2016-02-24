@@ -268,7 +268,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	//return true
 
 	ief, err := net.InterfaceByName(conf.Conf.BMDS_IPList[x])
-	fmt.Printf("%v\n", ief)
+	//fmt.Printf("%v\n", ief)
 
 	if err != nil {
 		rLog.Log("net.InterfaceByName /// ", err)
