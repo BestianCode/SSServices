@@ -234,7 +234,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 					time.Sleep(time.Duration(2) * time.Second)
 				}
 				//rLog.LogDbg(3, "PREP ", prm.From, " -> ", mail)
-				go mailSendMXRotate(fullMail, prm.From, mail, mx, conf, rLog)
+				go mailSendMXRotate(fullMail, prm.From, mail, mx, conf, rLog, dbase)
 			}
 		}
 	}
@@ -243,11 +243,16 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 	return true
 }
 
-func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) {
+func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, dbase sssql.USQL) {
+	var count = int(10)
 	//rLog.LogDbg(3, "MX ROTATE ", headFrom, " -> ", headTo)
 	instOfSenders++
 	for _, mx := range servers {
-		if mailSend(body, headFrom, headTo, mx.Host, conf, rLog) {
+		if count < 1 {
+			break
+		}
+		count--
+		if mailSend(body, headFrom, headTo, mx.Host, conf, rLog, dbase) {
 			cntSucc++
 			break
 		}
@@ -256,8 +261,11 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, c
 	instOfSenders--
 }
 
-func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) bool {
-	var x int
+func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, dbase sssql.USQL) bool {
+	var (
+		x     int
+		query string
+	)
 	if len(conf.Conf.BMDS_IPList) > 1 {
 		x = rand.Intn(len(conf.Conf.BMDS_IPList) - 1)
 	} else {
@@ -289,10 +297,13 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	tcpAddr := &net.TCPAddr{IP: addrs[x].(*net.IPNet).IP}
 
-	d := net.Dialer{LocalAddr: tcpAddr}
+	d := net.Dialer{Timeout: time.Duration(10) * time.Second, LocalAddr: tcpAddr}
+	//fmt.Printf("%v\n", d)
 	conn, err := d.Dial("tcp4", server+":25")
 	if err != nil {
 		rLog.Log("d.Dial /// ", err)
+		query = "update members set status=-34 where email='" + headTo + "';"
+		_ = dbase.QSimple(query)
 		return false
 	}
 
@@ -302,6 +313,8 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	//c, err := smtp.Dial(server + ":25")
 	if err != nil {
 		rLog.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
+		query = "update members set status=-33 where email='" + headTo + "';"
+		_ = dbase.QSimple(query)
 		return false
 	}
 	defer c.Close()
@@ -311,6 +324,10 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	wc, err := c.Data()
 	if err != nil {
 		rLog.Log("Body ", headFrom, "->", headTo, " error /// ", err)
+
+		query = "update members set status=-32 where email='" + headTo + "';"
+		_ = dbase.QSimple(query)
+
 		return false
 	}
 	defer wc.Close()
@@ -318,6 +335,10 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
 	if _, err = buf.WriteTo(wc); err != nil {
 		rLog.Log("Send ", headFrom, "->", headTo, " error /// ", err)
+
+		query = "update members set status=-31 where email='" + headTo + "';"
+		_ = dbase.QSimple(query)
+
 		return false
 	}
 	rLog.Log("(IP:", tcpAddr, ") ", headFrom, "->", headTo, " via ", server, " - Sent")
