@@ -257,14 +257,19 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, servers []*net.MX, c
 }
 
 func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) bool {
-	//x := rand.Intn(len(conf.Conf.BMDS_IPList) - 1)
+	var x int
+	if len(conf.Conf.BMDS_IPList) > 1 {
+		x = rand.Intn(len(conf.Conf.BMDS_IPList) - 1)
+	} else {
+		x = 0
+	}
 	//rLog.LogDbg(3, "MAIL SEND ", conf.Conf.BMDS_IPList[x], " ])> ", headFrom, " -> ", headTo, " ---> ", server)
 	//time.Sleep(time.Duration(10) * time.Second)
 	//return true
 
-	//ief, err := net.InterfaceByName(conf.Conf.BMDS_IPList[x])
-	ief, err := net.InterfaceByName("eth1")
+	ief, err := net.InterfaceByName(conf.Conf.BMDS_IPList[x])
 	fmt.Printf("%v\n", ief)
+
 	if err != nil {
 		rLog.Log("net.InterfaceByName /// ", err)
 		return false
@@ -276,7 +281,13 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		return false
 	}
 
-	tcpAddr := &net.TCPAddr{IP: addrs[rand.Intn(len(addrs)-1)].(*net.IPNet).IP}
+	if len(addrs) > 1 {
+		x = rand.Intn(len(addrs) - 1)
+	} else {
+		x = 0
+	}
+
+	tcpAddr := &net.TCPAddr{IP: addrs[x].(*net.IPNet).IP}
 
 	d := net.Dialer{LocalAddr: tcpAddr}
 	conn, err := d.Dial("tcp4", server+":25")
