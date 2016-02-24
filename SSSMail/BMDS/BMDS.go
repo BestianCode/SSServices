@@ -127,7 +127,7 @@ func mailGetMX(name string, rLog sslog.LogFile, dbase sssql.USQL) ([]*net.MX, bo
 		return nil, false
 	}
 
-	query = "select inet_ntoa(x.ip),x.weight from bmds_mx as x left join bmds_domain as y on (x.pid=y.id) where y.domain='" + parts[len(parts)-1] + "';"
+	query = "select distinct inet_ntoa(x.ip) from bmds_mx as x left join bmds_domain as y on (x.pid=y.id) where y.domain='" + parts[len(parts)-1] + "';"
 	//rLog.LogDbg(3, "DNS Search: ", query)
 	rows, err := dbase.D.Query(query)
 	if err != nil {
@@ -303,6 +303,8 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	if err != nil {
 		rLog.Log("d.Dial /// ", err)
 		query = "update members set status=-34 where email='" + headTo + "';"
+		_ = dbase.QSimple(query)
+		query = "delete from bmds_mx where ip=inet_aton('" + server + "');"
 		_ = dbase.QSimple(query)
 		return false
 	}
