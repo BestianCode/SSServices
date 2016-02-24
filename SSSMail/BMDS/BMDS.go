@@ -356,10 +356,11 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 func main() {
 
 	var (
-		jsonConfig sscfg.ReadJSONConfig
-		rLog       sslog.LogFile
-		prm        queryParam
-		DBase      sssql.USQL
+		jsonConfig  sscfg.ReadJSONConfig
+		rLog        sslog.LogFile
+		prm         queryParam
+		DBase       sssql.USQL
+		exitCounter = int(60)
 	)
 
 	const (
@@ -409,6 +410,12 @@ func main() {
 			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
 			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
 			fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
+			if instOfSenders < 5 {
+				exitCounter--
+			}
+			if exitCounter < 1 {
+				break
+			}
 		} else {
 			break
 		}
