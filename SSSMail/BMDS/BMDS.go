@@ -378,6 +378,7 @@ func main() {
 	for {
 		if instOfSenders > 0 {
 			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
+			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
 		} else {
 			break
 		}
