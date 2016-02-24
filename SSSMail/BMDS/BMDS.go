@@ -379,10 +379,12 @@ func main() {
 		if instOfSenders > 0 {
 			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
 			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
+			fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
 		} else {
 			break
 		}
 		time.Sleep(time.Duration(10) * time.Second)
 	}
+	fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
 	rLog.Log("Bye!")
 }
