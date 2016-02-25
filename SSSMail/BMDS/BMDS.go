@@ -230,8 +230,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 		rows.Scan(&mail)
 		cntAll++
 		if int(cntAll/10)*10 == cntAll {
-			fmt.Printf("sent: %d, fail: %d, count: %d, instances: %d\n", cntSucc, int(cntAll-cntSucc), cntAll, instOfSenders)
-			//rLog.Log("sent: ", cntSucc, ", fail: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders, "\n")
+			fmt.Printf("sent: %d, wait: %d, count: %d, instances: %d\n", cntSucc, int(cntAll-cntSucc), cntAll, instOfSenders)
 		}
 
 		fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf)
@@ -448,7 +447,7 @@ func main() {
 			timeExec = int64(timeNow.Unix() - timeStart)
 			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
 			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
-			printAll("Time: ", timeExec, ", sent: ", cntSucc, ", fail: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
+			printAll("Time: ", timeExec, ", sent: ", cntSucc, ", wait: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
 			if instOfSenders < 10 {
 				exitCounter--
 			}
@@ -462,6 +461,6 @@ func main() {
 	}
 	timeNow = time.Now()
 	timeExec = int64(timeNow.Unix() - timeStart)
-	printAll("Time: ", timeExec, ", sent: ", cntSucc, ", fail: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
+	printAll("Time: ", timeExec, ", sent: ", cntSucc, ", failed: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
 	printAll("Bye!")
 }
