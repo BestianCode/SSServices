@@ -19,13 +19,13 @@ import (
 )
 
 var (
-	instOfSenders int
-	cntSucc       int
-	cntFail       int
-	cntAll        int
-	//slowSend                     map[string]int64
+	instOfSenders                int
+	cntSucc                      int
+	cntFail                      int
+	cntAll                       int
 	rLog, rLogSc, rLogFl, rLogDb sslog.LogFile
-	SQLCreateTable1              = string(`
+	//slowSend                     map[string]int64
+	SQLCreateTable1 = string(`
 create table if not exists bmds_domain (
 	id int(10) unsigned not null auto_increment,
 	domain varchar(255),
