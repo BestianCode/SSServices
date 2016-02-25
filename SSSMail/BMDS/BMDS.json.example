@@ -15,11 +15,7 @@
 					"eth1"
 				],
 
-	"BMDS_SlowMail":	[
-					"gmail.com",
-					"hotmail.com",
-					"yahoo.com"
-				],
+	"BMDS_SlowMailDelay":	0,
 
 	"LOG_File":		"./BMDS.log",
 

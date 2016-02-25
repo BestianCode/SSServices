@@ -19,11 +19,11 @@ import (
 )
 
 var (
-	instOfSenders                int
-	cntSucc                      int
-	cntFail                      int
-	cntAll                       int
-	slowSend                     map[string]int64
+	instOfSenders int
+	cntSucc       int
+	cntFail       int
+	cntAll        int
+	//slowSend                     map[string]int64
 	rLog, rLogSc, rLogFl, rLogDb sslog.LogFile
 	SQLCreateTable1              = string(`
 create table if not exists bmds_domain (
@@ -329,20 +329,25 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	d := net.Dialer{Timeout: time.Duration(10) * time.Second, LocalAddr: tcpAddr}
 
-	timeNow := time.Now()
-
-	senderDomain := strings.Split(headTo, "@")
-	for _, slowx := range conf.Conf.BMDS_SlowMail {
-		if senderDomain[len(senderDomain)-1] == slowx {
-			if int64(slowSend[fmt.Sprintf("%v", tcpAddr)]) > int64(0) {
-				if (timeNow.Unix() - slowSend[fmt.Sprintf("%v", tcpAddr)]) < 5 {
-					rLog.Log("slow for: ", headTo, " on ", fmt.Sprintf("%v", tcpAddr))
-					time.Sleep(time.Duration(3) * time.Second)
+	/*
+		timeNow := time.Now()
+		senderDomain := strings.Split(headTo, "@")
+		for _, slowx := range conf.Conf.BMDS_SlowMail {
+			if senderDomain[len(senderDomain)-1] == slowx {
+				//rLogDb.LogDbg(3, "337:", fmt.Sprintf("%v", tcpAddr))
+				//rLogDb.LogDbg(3, "338:", slowSend[fmt.Sprintf("%v", tcpAddr)])
+				//rLogDb.LogDbg(3, "339:", int64(slowSend[fmt.Sprintf("%v", tcpAddr)]))
+				if int64(slowSend[fmt.Sprintf("%v", tcpAddr)]) > int64(0) {
+					if (timeNow.Unix() - slowSend[fmt.Sprintf("%v", tcpAddr)]) < 5 {
+						rLog.Log("slow for: ", headTo, " on ", fmt.Sprintf("%v", tcpAddr))
+					}
 				}
 			}
 		}
+	*/
+	if conf.Conf.BMDS_SlowMailDelay > 0 {
+		time.Sleep(time.Duration(conf.Conf.BMDS_SlowMailDelay) * time.Second)
 	}
-
 	conn, err := d.Dial("tcp4", server+":25")
 	if err != nil {
 		rLog.Log("d.Dial /// ", err)
@@ -361,8 +366,8 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		rLogFl.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
 		query = "update members set status=-33 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
-		timeNow = time.Now()
-		slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+		//timeNow = time.Now()
+		//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 		return false
 	}
 	defer c.Close()
@@ -375,8 +380,8 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 		query = "update members set status=-32 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
-		timeNow = time.Now()
-		slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+		//timeNow = time.Now()
+		//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 		return false
 	}
 	defer wc.Close()
@@ -384,16 +389,15 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
 	if _, err = buf.WriteTo(wc); err != nil {
 		rLogFl.Log("Send ", headFrom, "->", headTo, " error /// ", err)
-
 		query = "update members set status=-31 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
-		timeNow = time.Now()
-		slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+		//timeNow = time.Now()
+		//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 		return false
 	}
 	rLogSc.Log("(IP:", fmt.Sprintf("%v", tcpAddr), ") ", headFrom, "->", headTo, " via ", server, " - Sent")
-	timeNow = time.Now()
-	slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+	//timeNow = time.Now()
+	//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 	return true
 }
 
@@ -409,7 +413,7 @@ func main() {
 
 	const (
 		pName = string("SSServices / BulkMailDirectSender")
-		pVer  = string("1 2016.02.25.21.00")
+		pVer  = string("1 2016.02.26.00.00")
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)
@@ -432,7 +436,7 @@ func main() {
 
 	x := strings.Split(jsonConfig.Keys, " ")
 
-	slowSend = make(map[string]int64, 1000)
+	//slowSend = make(map[string]int64, 1000)
 
 	timeNow := time.Now()
 	timeStart = timeNow.Unix()
