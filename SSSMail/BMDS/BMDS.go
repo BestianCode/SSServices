@@ -385,7 +385,7 @@ func main() {
 		jsonConfig          sscfg.ReadJSONConfig
 		prm                 queryParam
 		DBase               sssql.USQL
-		exitCounter         = int(6)
+		exitCounter         = int(3)
 		timeStart, timeExec int64
 	)
 
@@ -449,7 +449,7 @@ func main() {
 			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
 			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
 			printAll("Time: ", timeExec, ", sent: ", cntSucc, ", fail: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
-			if instOfSenders < 5 {
+			if instOfSenders < 10 {
 				exitCounter--
 			}
 			if exitCounter < 1 {
