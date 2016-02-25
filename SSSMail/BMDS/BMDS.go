@@ -238,7 +238,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 		cntAll++
 		if int(cntAll/10)*10 == cntAll {
 			fmt.Printf("sent: %d, wait: %d, count: %d, instances: %d\n", cntSucc, int(cntAll-cntSucc), cntAll, instOfSenders)
-			rLog.Log("sent: ", cntSucc, ", failed: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
+			rLog.Log("sent: ", cntSucc, ", wait: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
 		}
 
 		fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf)
