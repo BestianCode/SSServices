@@ -274,7 +274,7 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, conf sscfg.ReadJSONC
 	instOfSenders++
 	rLogDb.LogDbg(3, "269:", headTo)
 	servers, statusMX := mailGetMX(headTo, dbase)
-	rLogDb.LogDbg(3, "272:", servers)
+	rLogDb.LogDbg(3, "272:", &servers)
 	if statusMX {
 		for _, mx := range servers {
 			if count < 1 {
