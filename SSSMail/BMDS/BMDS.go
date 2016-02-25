@@ -50,6 +50,8 @@ type queryParam struct {
 	StateNameShort string
 	Country        string
 	From           string
+	Mode           string
+	Limit          string
 }
 
 func printAll(msg ...interface{}) {
@@ -218,6 +220,11 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	}
 	query = strings.Replace(query, "'$3'", "'"+prm.StateName+"'", -1)
 	query = strings.Replace(query, "'$4'", "'"+prm.Country+"'", -1)
+
+	xlimit, _ := strconv.Atoi(prm.Limit)
+	if xlimit > 0 {
+		query = query + " limit " + prm.Limit
+	}
 
 	rLog.Log(query)
 	rows, err := dbase.D.Query(query)
@@ -423,6 +430,8 @@ func main() {
 		prm.StateNameShort = x[2]
 		prm.Country = x[3]
 		prm.From = x[4]
+		prm.Mode = x[5]
+		prm.Limit = x[6]
 
 		DBase.Init("MY", jsonConfig.Conf.MY_DSN, "")
 		DBase.QSimple(SQLCreateTable1)
