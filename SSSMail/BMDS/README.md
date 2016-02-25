@@ -2,11 +2,11 @@
 
 ## Install
 
-go get github.com/BestianRU/SSServices
-cd ~/go/src/github.com/BestianRU/SSServices
-go get ./...
-cd SSSMail/BMDS/
-go build
+* go get github.com/BestianRU/SSServices
+* cd ~/go/src/github.com/BestianRU/SSServices
+* go get ./...
+* cd SSSMail/BMDS/
+* go build
 
 ## Start
 
