@@ -153,7 +153,7 @@ func mailGetMX(name string, dbase sssql.USQL) ([]*net.MX, bool) {
 	rows.Close()
 
 	if len(mx) > 0 {
-		rLogDb.LogDbg(3, "NAME GET: SQL")
+		//rLogDb.LogDbg(3, "NAME GET: SQL")
 		return mx, true
 	}
 
@@ -161,7 +161,7 @@ func mailGetMX(name string, dbase sssql.USQL) ([]*net.MX, bool) {
 	if err != nil {
 		return nil, false
 	}
-	rLogDb.LogDbg(3, "NAME GET: DNS")
+	//rLogDb.LogDbg(3, "NAME GET: DNS")
 
 	query = "insert into bmds_domain (domain) values ('" + parts[len(parts)-1] + "');"
 	dbase.Silent = 1
