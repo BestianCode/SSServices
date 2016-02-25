@@ -19,13 +19,13 @@ import (
 )
 
 var (
-	instOfSenders int
-	cntSucc       int
-	cntFail       int
-	cntAll        int
-	slowSend      map[string]int64
-
-	SQLCreateTable1 = string(`
+	instOfSenders        int
+	cntSucc              int
+	cntFail              int
+	cntAll               int
+	slowSend             map[string]int64
+	rLog, rLogSc, rLogFl sslog.LogFile
+	SQLCreateTable1      = string(`
 create table if not exists bmds_domain (
 	id int(10) unsigned not null auto_increment,
 	domain varchar(255),
@@ -52,7 +52,14 @@ type queryParam struct {
 	From           string
 }
 
-func mailCreate(prm queryParam, to, subject string, bodyTXT, bodyHTML []byte, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) ([]byte, bool) {
+func printAll(msg ...interface{}) {
+	fmt.Println(msg)
+	rLog.Log(msg)
+	rLogSc.Log(msg)
+	rLogFl.Log(msg)
+}
+
+func mailCreate(prm queryParam, to, subject string, bodyTXT, bodyHTML []byte, conf sscfg.ReadJSONConfig) ([]byte, bool) {
 	t := time.Now()
 	rnd := t.Format("20060102.150405")
 	senderDomain := strings.Split(prm.From, "@")
@@ -82,7 +89,7 @@ func mailCreate(prm queryParam, to, subject string, bodyTXT, bodyHTML []byte, co
 	return msg, true
 }
 
-func mailGetSubject(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) (string, bool) {
+func mailGetSubject(prm queryParam, conf sscfg.ReadJSONConfig) (string, bool) {
 	f, err := os.Open(conf.Conf.BMDS_TitleDir + "/" + strconv.Itoa(prm.StateCode) + "_" + prm.StateName + ".txt")
 	defer f.Close()
 	reader := bufio.NewReader(f)
@@ -96,7 +103,7 @@ func mailGetSubject(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFil
 	return tl, true
 }
 
-func mailGetBody(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) ([]byte, []byte, bool) {
+func mailGetBody(prm queryParam, conf sscfg.ReadJSONConfig) ([]byte, []byte, bool) {
 	f1, err := os.Open(conf.Conf.BMDS_BodyDir + "/mail_" + prm.StateName + ".txt")
 	if err != nil {
 		rLog.Log("Error open TXT Body file!")
@@ -116,7 +123,7 @@ func mailGetBody(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile) 
 	return contents1, contents2, true
 }
 
-func mailGetMX(name string, rLog sslog.LogFile, dbase sssql.USQL) ([]*net.MX, bool) {
+func mailGetMX(name string, dbase sssql.USQL) ([]*net.MX, bool) {
 	var (
 		mx    []*net.MX
 		tmx   net.MX
@@ -188,18 +195,18 @@ func mailGetMX(name string, rLog sslog.LogFile, dbase sssql.USQL) ([]*net.MX, bo
 	return mxs, true
 }
 
-func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, dbase sssql.USQL) bool {
+func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bool {
 	var (
 		//err   error
 		query string
 		mail  string
 	)
 
-	tl, statusTL := mailGetSubject(prm, conf, rLog)
+	tl, statusTL := mailGetSubject(prm, conf)
 	if !statusTL {
 		return false
 	}
-	bodyTXT, bodyHTML, statusBD := mailGetBody(prm, conf, rLog)
+	bodyTXT, bodyHTML, statusBD := mailGetBody(prm, conf)
 	if !statusBD {
 		return false
 	}
@@ -223,10 +230,11 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 		rows.Scan(&mail)
 		cntAll++
 		if int(cntAll/10)*10 == cntAll {
-			fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
+			fmt.Printf("sent: %d, fail: %d, count: %d, instances: %d\n", cntSucc, int(cntAll-cntSucc), cntAll, instOfSenders)
+			//rLog.Log("sent: ", cntSucc, ", fail: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders, "\n")
 		}
 
-		fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf, rLog)
+		fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf)
 		if statusFM {
 			if instOfSenders >= conf.Conf.BMDS_MaxInstances {
 				for {
@@ -237,7 +245,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 					time.Sleep(time.Duration(2) * time.Second)
 				}
 			}
-			go mailSendMXRotate(fullMail, prm.From, mail, conf, rLog, dbase)
+			go mailSendMXRotate(fullMail, prm.From, mail, conf, dbase)
 		}
 
 	}
@@ -246,12 +254,12 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, 
 	return true
 }
 
-func mailSendMXRotate(body []byte, headFrom, headTo string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, dbase sssql.USQL) {
+func mailSendMXRotate(body []byte, headFrom, headTo string, conf sscfg.ReadJSONConfig, dbase sssql.USQL) {
 	var count = int(10)
 
 	instOfSenders++
 	//fmt.Printf("X\n")
-	servers, statusMX := mailGetMX(headTo, rLog, dbase)
+	servers, statusMX := mailGetMX(headTo, dbase)
 	//fmt.Printf("Y%v\n", servers)
 	if statusMX {
 		for _, mx := range servers {
@@ -259,7 +267,7 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, conf sscfg.ReadJSONC
 				break
 			}
 			count--
-			if mailSend(body, headFrom, headTo, mx.Host, conf, rLog, dbase) {
+			if mailSend(body, headFrom, headTo, mx.Host, conf, dbase) {
 				cntSucc++
 				break
 			}
@@ -269,7 +277,7 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, conf sscfg.ReadJSONC
 	instOfSenders--
 }
 
-func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, rLog sslog.LogFile, dbase sssql.USQL) bool {
+func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bool {
 	var (
 		x     int
 		query string
@@ -310,7 +318,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		if senderDomain[len(senderDomain)-1] == slowx {
 			if int64(slowSend[fmt.Sprintf("%v", tcpAddr)]) > int64(0) {
 				if (timeNow.Unix() - slowSend[fmt.Sprintf("%v", tcpAddr)]) < 5 {
-					rLog.Log("slow for: ", slowx, " on ", fmt.Sprintf("%v", tcpAddr))
+					rLog.Log("slow for: ", headTo, " on ", fmt.Sprintf("%v", tcpAddr))
 					time.Sleep(time.Duration(5) * time.Second)
 				}
 			}
@@ -332,7 +340,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	//c, err := smtp.Dial(server + ":25")
 	if err != nil {
-		rLog.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
+		rLogFl.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
 		query = "update members set status=-33 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
 		timeNow = time.Now()
@@ -345,7 +353,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	wc, err := c.Data()
 	if err != nil {
-		rLog.Log("Body ", headFrom, "->", headTo, " error /// ", err)
+		rLogFl.Log("Body ", headFrom, "->", headTo, " error /// ", err)
 
 		query = "update members set status=-32 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
@@ -357,7 +365,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
 	if _, err = buf.WriteTo(wc); err != nil {
-		rLog.Log("Send ", headFrom, "->", headTo, " error /// ", err)
+		rLogFl.Log("Send ", headFrom, "->", headTo, " error /// ", err)
 
 		query = "update members set status=-31 where email='" + headTo + "';"
 		_ = dbase.QSimple(query)
@@ -365,7 +373,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 		return false
 	}
-	rLog.Log("(IP:", fmt.Sprintf("%v", tcpAddr), ") ", headFrom, "->", headTo, " via ", server, " - Sent")
+	rLogSc.Log("(IP:", fmt.Sprintf("%v", tcpAddr), ") ", headFrom, "->", headTo, " via ", server, " - Sent")
 	timeNow = time.Now()
 	slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
 	return true
@@ -374,11 +382,11 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 func main() {
 
 	var (
-		jsonConfig  sscfg.ReadJSONConfig
-		rLog        sslog.LogFile
-		prm         queryParam
-		DBase       sssql.USQL
-		exitCounter = int(60)
+		jsonConfig          sscfg.ReadJSONConfig
+		prm                 queryParam
+		DBase               sssql.USQL
+		exitCounter         = int(6)
+		timeStart, timeExec int64
 	)
 
 	const (
@@ -391,14 +399,23 @@ func main() {
 	jsonConfig.Init("./BMDS.log", "./BMDS.json")
 
 	rLog.ON(jsonConfig.Conf.LOG_File, jsonConfig.Conf.LOG_Level)
+	rLogSc.ON(jsonConfig.Conf.LOG_File+".sent", jsonConfig.Conf.LOG_Level)
+	rLogFl.ON(jsonConfig.Conf.LOG_File+".fail", jsonConfig.Conf.LOG_Level)
 	rLog.Hello(pName, pVer)
+	rLogSc.Hello(pName, pVer)
+	rLogFl.Hello(pName, pVer)
 	defer rLog.OFF()
+	defer rLogSc.OFF()
+	defer rLogFl.OFF()
 
 	jsonConfig.Conf.SQL_Engine = "MY"
 
 	x := strings.Split(jsonConfig.Keys, " ")
 
 	slowSend = make(map[string]int64, 1000)
+
+	timeNow := time.Now()
+	timeStart = timeNow.Unix()
 
 	if len(x) > 4 {
 
@@ -413,7 +430,7 @@ func main() {
 		DBase.QSimple(SQLCreateTable2)
 
 		defer DBase.Close()
-		if !mailPrepare(prm, jsonConfig, rLog, DBase) {
+		if !mailPrepare(prm, jsonConfig, DBase) {
 			fmt.Println("mailPrepare Error!")
 			rLog.Log("mailPrepare Error!")
 		} else {
@@ -427,9 +444,11 @@ func main() {
 
 	for {
 		if instOfSenders > 0 {
+			timeNow = time.Now()
+			timeExec = int64(timeNow.Unix() - timeStart)
 			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
 			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
-			fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
+			printAll("Time: ", timeExec, ", sent: ", cntSucc, ", fail: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
 			if instOfSenders < 5 {
 				exitCounter--
 			}
@@ -441,8 +460,8 @@ func main() {
 		}
 		time.Sleep(time.Duration(10) * time.Second)
 	}
-	fmt.Printf("sent: %d, fail: %d, count: %d, summ: (%d), instances: %d\n", cntSucc, cntFail, cntAll, int(cntFail+cntSucc), instOfSenders)
-	rLog.Log("Bye!")
-
-	fmt.Printf("%v\n", slowSend)
+	timeNow = time.Now()
+	timeExec = int64(timeNow.Unix() - timeStart)
+	printAll("Time: ", timeExec, ", sent: ", cntSucc, ", fail: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
+	printAll("Bye!")
 }
