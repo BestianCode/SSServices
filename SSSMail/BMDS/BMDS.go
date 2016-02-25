@@ -259,6 +259,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 					time.Sleep(time.Duration(2) * time.Second)
 				}
 			}
+			rLogDb.LogDbg(3, "262:", prm.From, " -> ", mail)
 			go mailSendMXRotate(fullMail, prm.From, mail, conf, dbase)
 		}
 
@@ -297,6 +298,8 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		x     int
 		query string
 	)
+
+	rLogDb.LogDbg(3, "301:", headFrom, " -> ", headTo, " <><><> ", server)
 
 	if len(conf.Conf.BMDS_IPList) > 1 {
 		x = rand.Intn(len(conf.Conf.BMDS_IPList) - 1)
