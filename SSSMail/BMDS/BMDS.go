@@ -19,13 +19,13 @@ import (
 )
 
 var (
-	instOfSenders        int
-	cntSucc              int
-	cntFail              int
-	cntAll               int
-	slowSend             map[string]int64
-	rLog, rLogSc, rLogFl sslog.LogFile
-	SQLCreateTable1      = string(`
+	instOfSenders                int
+	cntSucc                      int
+	cntFail                      int
+	cntAll                       int
+	slowSend                     map[string]int64
+	rLog, rLogSc, rLogFl, rLogDb sslog.LogFile
+	SQLCreateTable1              = string(`
 create table if not exists bmds_domain (
 	id int(10) unsigned not null auto_increment,
 	domain varchar(255),
@@ -199,7 +199,7 @@ func mailGetMX(name string, dbase sssql.USQL) ([]*net.MX, bool) {
 
 func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bool {
 	var (
-		//err   error
+		err   error
 		query string
 		mail  string
 	)
@@ -221,9 +221,15 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	query = strings.Replace(query, "'$3'", "'"+prm.StateNameShort+"'", -1)
 	query = strings.Replace(query, "'$4'", "'"+prm.Country+"'", -1)
 
-	xlimit, _ := strconv.Atoi(prm.Limit)
-	if xlimit > 0 {
-		query = query + " limit " + prm.Limit
+	rLogDb.LogDbg(3, "224:", prm.Limit)
+	xlimit, err := strconv.Atoi(prm.Limit)
+	rLogDb.LogDbg(3, "226:", xlimit)
+	if err == nil {
+		if xlimit > 0 {
+			query = query + " limit " + prm.Limit
+		}
+	} else {
+		rLogDb.LogDbg(3, "232:", err)
 	}
 
 	rLog.Log(query)
@@ -235,6 +241,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	}
 	for rows.Next() {
 		rows.Scan(&mail)
+		rLogDb.LogDbg(3, "238:", mail)
 		cntAll++
 		if int(cntAll/10)*10 == cntAll {
 			fmt.Printf("sent: %d, wait: %d, count: %d, instances: %d\n", cntSucc, int(cntAll-cntSucc), cntAll, instOfSenders)
@@ -265,9 +272,9 @@ func mailSendMXRotate(body []byte, headFrom, headTo string, conf sscfg.ReadJSONC
 	var count = int(10)
 
 	instOfSenders++
-	//fmt.Printf("X\n")
+	rLogDb.LogDbg(3, "269:", headTo)
 	servers, statusMX := mailGetMX(headTo, dbase)
-	//fmt.Printf("Y%v\n", servers)
+	rLogDb.LogDbg(3, "272:", servers)
 	if statusMX {
 		for _, mx := range servers {
 			if count < 1 {
@@ -408,12 +415,14 @@ func main() {
 	rLog.ON(jsonConfig.Conf.LOG_File, jsonConfig.Conf.LOG_Level)
 	rLogSc.ON(jsonConfig.Conf.LOG_File+".sent", jsonConfig.Conf.LOG_Level)
 	rLogFl.ON(jsonConfig.Conf.LOG_File+".fail", jsonConfig.Conf.LOG_Level)
+	rLogDb.ON(jsonConfig.Conf.LOG_File+".debug", jsonConfig.Conf.LOG_Level)
 	rLog.Hello(pName, pVer)
 	rLogSc.Hello(pName, pVer)
 	rLogFl.Hello(pName, pVer)
 	defer rLog.OFF()
 	defer rLogSc.OFF()
 	defer rLogFl.OFF()
+	defer rLogDb.OFF()
 
 	jsonConfig.Conf.SQL_Engine = "MY"
 
