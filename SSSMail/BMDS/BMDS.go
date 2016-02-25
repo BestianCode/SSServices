@@ -218,7 +218,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	} else {
 		query = conf.Conf.SQL_QUE2
 	}
-	query = strings.Replace(query, "'$3'", "'"+prm.StateName+"'", -1)
+	query = strings.Replace(query, "'$3'", "'"+prm.StateNameShort+"'", -1)
 	query = strings.Replace(query, "'$4'", "'"+prm.Country+"'", -1)
 
 	xlimit, _ := strconv.Atoi(prm.Limit)
