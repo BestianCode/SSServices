@@ -326,7 +326,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 			if int64(slowSend[fmt.Sprintf("%v", tcpAddr)]) > int64(0) {
 				if (timeNow.Unix() - slowSend[fmt.Sprintf("%v", tcpAddr)]) < 5 {
 					rLog.Log("slow for: ", headTo, " on ", fmt.Sprintf("%v", tcpAddr))
-					time.Sleep(time.Duration(5) * time.Second)
+					time.Sleep(time.Duration(3) * time.Second)
 				}
 			}
 		}
