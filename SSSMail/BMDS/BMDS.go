@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	dkim "github.com/toorop/go-dkim"
+
 	"github.com/BestianRU/SSServices/SSModules/sscfg"
 	"github.com/BestianRU/SSServices/SSModules/sslog"
 	"github.com/BestianRU/SSServices/SSModules/sssql"
@@ -23,6 +25,7 @@ var (
 	cntSucc                      int
 	cntFail                      int
 	cntAll                       int
+	options                      dkim.SigOptions
 	rLog, rLogSc, rLogFl, rLogDb sslog.LogFile
 	//slowSend                     map[string]int64
 	SQLCreateTable1 = string(`
@@ -123,6 +126,18 @@ func mailGetBody(prm queryParam, conf sscfg.ReadJSONConfig) ([]byte, []byte, boo
 	contents1, _ := ioutil.ReadAll(reader1)
 	contents2, _ := ioutil.ReadAll(reader2)
 	return contents1, contents2, true
+}
+
+func mailGetDKIM(conf sscfg.ReadJSONConfig) []byte {
+	f1, err := os.Open(conf.Conf.BDMS_DKIMKey)
+	if err != nil {
+		rLog.Log("Error open DKIM file!")
+		return nil
+	}
+	defer f1.Close()
+	reader1 := bufio.NewReader(f1)
+	contents1, _ := ioutil.ReadAll(reader1)
+	return contents1
 }
 
 func mailGetMX(name string, dbase sssql.USQL) ([]*net.MX, bool) {
@@ -231,6 +246,16 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	} else {
 		rLogDb.LogDbg(3, "232:", err)
 	}
+
+	options := dkim.NewSigOptions()
+	options.PrivateKey = mailGetDKIM(conf)
+	options.Domain = "qakadeals.com"
+	options.Selector = "mail"
+	options.SignatureExpireIn = 3600
+	options.BodyLength = 50
+	options.Headers = []string{"from", "date", "subject", "to"}
+	options.AddSignatureTimestamp = true
+	options.Canonicalization = "relaxed/relaxed"
 
 	rLog.Log(query)
 	rows, err := dbase.D.Query(query)
@@ -385,6 +410,8 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		return false
 	}
 	defer wc.Close()
+
+	err = dkim.Sign(&body, options)
 
 	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
 	if _, err = buf.WriteTo(wc); err != nil {

@@ -84,6 +84,7 @@ type ReadJSONConfig struct {
 		BMDS_IPList         []string
 		BMDS_SlowMail       []string
 		BMDS_SlowMailDelay  int
+		BDMS_DKIMKey        string
 	}
 }
 
