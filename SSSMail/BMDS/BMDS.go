@@ -327,7 +327,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	tcpAddr := &net.TCPAddr{IP: addrs[x].(*net.IPNet).IP}
 
-	d := net.Dialer{Timeout: time.Duration(10) * time.Second, LocalAddr: tcpAddr}
+	d := net.Dialer{Timeout: time.Duration(5) * time.Second, LocalAddr: tcpAddr}
 
 	/*
 		timeNow := time.Now()
