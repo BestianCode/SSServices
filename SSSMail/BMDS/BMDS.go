@@ -253,9 +253,10 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	options.Selector = conf.Conf.BDMS_DKIMSelector
 	options.SignatureExpireIn = 3600
 	options.BodyLength = 50
-	options.Headers = []string{"from", "date", "subject", "to"}
+	options.Headers = []string{"Date", "Subject", "From"}
 	options.AddSignatureTimestamp = true
 	options.Canonicalization = "relaxed/relaxed"
+	//options.Canonicalization = "relaxed/simple"
 
 	rLog.Log(query)
 	rows, err := dbase.D.Query(query)
@@ -412,6 +413,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	defer wc.Close()
 
 	//rLogDb.LogDbg(3, "----------\n", fmt.Sprintf("%s", body), "----------\n")
+	//rLogDb.LogDbg(3, "----------\n", fmt.Sprintf("%s", options.PrivateKey), "----------\n")
 	err = dkim.Sign(&body, options)
 	//rLogDb.LogDbg(3, "----------\n", fmt.Sprintf("%s", body), "----------\n")
 
