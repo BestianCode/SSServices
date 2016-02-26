@@ -247,10 +247,10 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 		rLogDb.LogDbg(3, "232:", err)
 	}
 
-	options := dkim.NewSigOptions()
+	options = dkim.NewSigOptions()
 	options.PrivateKey = mailGetDKIM(conf)
-	options.Domain = "qakadeals.com"
-	options.Selector = "mail"
+	options.Domain = conf.Conf.BDMS_DKIMDomain
+	options.Selector = conf.Conf.BDMS_DKIMSelector
 	options.SignatureExpireIn = 3600
 	options.BodyLength = 50
 	options.Headers = []string{"from", "date", "subject", "to"}
@@ -411,7 +411,9 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	}
 	defer wc.Close()
 
+	//rLogDb.LogDbg(3, "----------\n", fmt.Sprintf("%s", body), "----------\n")
 	err = dkim.Sign(&body, options)
+	//rLogDb.LogDbg(3, "----------\n", fmt.Sprintf("%s", body), "----------\n")
 
 	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
 	if _, err = buf.WriteTo(wc); err != nil {

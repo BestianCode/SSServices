@@ -9,6 +9,8 @@
 	"BMDS_SenderName":	"My test company",
 	"BMDS_MaxInstances":	100,
 	"BDMS_DKIMKey":		"./dkim.key",
+	"BDMS_DKIMDomain":	"gmail.com",
+	"BDMS_DKIMSelector":	"mail",
 
 	"BMDS_IPList":		[
 					"eth0",
