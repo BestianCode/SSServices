@@ -345,55 +345,58 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 			}
 		}
 	*/
-	if conf.Conf.BMDS_SlowMailDelay > 0 {
-		time.Sleep(time.Duration(conf.Conf.BMDS_SlowMailDelay) * time.Second)
-	}
-	conn, err := d.Dial("tcp4", server+":25")
-	if err != nil {
-		rLog.Log("d.Dial /// ", err)
-		query = "update members set status=-34 where email='" + headTo + "';"
-		_ = dbase.QSimple(query)
-		query = "delete from bmds_mx where ip=inet_aton('" + server + "');"
-		_ = dbase.QSimple(query)
-		return false
-	}
+	senderDomain := strings.Split(headTo, "@")
+	if senderDomain[len(senderDomain)-1] != "yahoo.com" {
+		if conf.Conf.BMDS_SlowMailDelay > 0 {
+			time.Sleep(time.Duration(conf.Conf.BMDS_SlowMailDelay) * time.Second)
+		}
+		conn, err := d.Dial("tcp4", server+":25")
+		if err != nil {
+			rLog.Log("d.Dial /// ", err)
+			query = "update members set status=-34 where email='" + headTo + "';"
+			_ = dbase.QSimple(query)
+			query = "delete from bmds_mx where ip=inet_aton('" + server + "');"
+			_ = dbase.QSimple(query)
+			return false
+		}
 
-	host, _, _ := net.SplitHostPort(server + ":25")
-	c, err := smtp.NewClient(conn, host)
+		host, _, _ := net.SplitHostPort(server + ":25")
+		c, err := smtp.NewClient(conn, host)
 
-	//c, err := smtp.Dial(server + ":25")
-	if err != nil {
-		rLogFl.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
-		query = "update members set status=-33 where email='" + headTo + "';"
-		_ = dbase.QSimple(query)
-		//timeNow = time.Now()
-		//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
-		return false
-	}
-	defer c.Close()
-	c.Mail(headFrom)
-	c.Rcpt(headTo)
+		//c, err := smtp.Dial(server + ":25")
+		if err != nil {
+			rLogFl.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
+			query = "update members set status=-33 where email='" + headTo + "';"
+			_ = dbase.QSimple(query)
+			//timeNow = time.Now()
+			//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+			return false
+		}
+		defer c.Close()
+		c.Mail(headFrom)
+		c.Rcpt(headTo)
 
-	wc, err := c.Data()
-	if err != nil {
-		rLogFl.Log("Body ", headFrom, "->", headTo, " error /// ", err)
+		wc, err := c.Data()
+		if err != nil {
+			rLogFl.Log("Body ", headFrom, "->", headTo, " error /// ", err)
 
-		query = "update members set status=-32 where email='" + headTo + "';"
-		_ = dbase.QSimple(query)
-		//timeNow = time.Now()
-		//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
-		return false
-	}
-	defer wc.Close()
+			query = "update members set status=-32 where email='" + headTo + "';"
+			_ = dbase.QSimple(query)
+			//timeNow = time.Now()
+			//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+			return false
+		}
+		defer wc.Close()
 
-	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
-	if _, err = buf.WriteTo(wc); err != nil {
-		rLogFl.Log("Send ", headFrom, "->", headTo, " error /// ", err)
-		query = "update members set status=-31 where email='" + headTo + "';"
-		_ = dbase.QSimple(query)
-		//timeNow = time.Now()
-		//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
-		return false
+		buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
+		if _, err = buf.WriteTo(wc); err != nil {
+			rLogFl.Log("Send ", headFrom, "->", headTo, " error /// ", err)
+			query = "update members set status=-31 where email='" + headTo + "';"
+			_ = dbase.QSimple(query)
+			//timeNow = time.Now()
+			//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+			return false
+		}
 	}
 	rLogSc.Log("(IP:", fmt.Sprintf("%v", tcpAddr), ") ", headFrom, "->", headTo, " via ", server, " - Sent")
 	//timeNow = time.Now()
