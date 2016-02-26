@@ -479,7 +479,7 @@ func main() {
 			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
 			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
 			printAll("Time: ", timeExec, ", sent: ", cntSucc, ", wait: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
-			if instOfSenders < 10 {
+			if instOfSenders < 30 {
 				exitCounter--
 			}
 			if exitCounter < 1 {
