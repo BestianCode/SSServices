@@ -451,6 +451,8 @@ func main() {
 		//prm.Mode = x[5]
 		if len(x) > 6 {
 			prm.Limit = x[6]
+		} else {
+			prm.Limit = "0"
 		}
 
 		DBase.Init("MY", jsonConfig.Conf.MY_DSN, "")
