@@ -448,8 +448,10 @@ func main() {
 		prm.StateNameShort = x[2]
 		prm.Country = x[3]
 		prm.From = x[4]
-		prm.Mode = x[5]
-		prm.Limit = x[6]
+		//prm.Mode = x[5]
+		if len(x) > 6 {
+			prm.Limit = x[6]
+		}
 
 		DBase.Init("MY", jsonConfig.Conf.MY_DSN, "")
 		DBase.QSimple(SQLCreateTable1)
@@ -488,6 +490,6 @@ func main() {
 	}
 	timeNow = time.Now()
 	timeExec = int64(timeNow.Unix() - timeStart)
-	printAll("Time: ", timeExec, ", sent: ", cntSucc, ", failed: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
+	printAll("Finish for ", prm.StateCode, "/", prm.StateName, "/", prm.Country, " > Time: ", timeExec, "sec, sent: ", cntSucc, ", failed: ", int(cntAll-cntSucc), ", count: ", cntAll)
 	printAll("Bye!")
 }
