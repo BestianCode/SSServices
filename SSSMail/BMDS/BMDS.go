@@ -221,10 +221,12 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 
 	tl, statusTL := mailGetSubject(prm, conf)
 	if !statusTL {
+		rLog.Log("Error get subject!")
 		return false
 	}
 	bodyTXT, bodyHTML, statusBD := mailGetBody(prm, conf)
 	if !statusBD {
+		rLog.Log("Error get body!")
 		return false
 	}
 
