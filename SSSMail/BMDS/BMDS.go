@@ -255,7 +255,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	options.Selector = conf.Conf.BDMS_DKIMSelector
 	options.SignatureExpireIn = 3600
 	options.BodyLength = 50
-	options.Headers = []string{"Date", "Subject", "From"}
+	options.Headers = []string{"To", "Subject", "From"}
 	options.AddSignatureTimestamp = true
 	options.Canonicalization = "relaxed/relaxed"
 	//options.Canonicalization = "relaxed/simple"
@@ -509,8 +509,8 @@ func main() {
 		if instOfSenders > 0 {
 			timeNow = time.Now()
 			timeExec = int64(timeNow.Unix() - timeStart)
-			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
-			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
+			rLog.Log("Wait for complete all Goroutines: ", instOfSenders)
+			fmt.Printf("Wait for complete all Goroutines: %d\n", instOfSenders)
 			printAll("Time: ", timeExec, ", sent: ", cntSucc, ", wait: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
 			if instOfSenders < 30 {
 				exitCounter--
