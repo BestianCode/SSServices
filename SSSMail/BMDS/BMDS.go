@@ -346,7 +346,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		}
 	*/
 	senderDomain := strings.Split(headTo, "@")
-	if senderDomain[len(senderDomain)-1] != "yahoo.com" {
+	if strings.Contains(senderDomain[len(senderDomain)-1], "yahoo.com") {
 		if conf.Conf.BMDS_SlowMailDelay > 0 {
 			time.Sleep(time.Duration(conf.Conf.BMDS_SlowMailDelay) * time.Second)
 		}
