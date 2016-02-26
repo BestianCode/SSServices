@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	dkim "github.com/toorop/go-dkim"
+
 	"github.com/BestianRU/SSServices/SSModules/sscfg"
 	"github.com/BestianRU/SSServices/SSModules/sslog"
 	"github.com/BestianRU/SSServices/SSModules/sssql"
@@ -23,6 +25,7 @@ var (
 	cntSucc                      int
 	cntFail                      int
 	cntAll                       int
+	options                      dkim.SigOptions
 	rLog, rLogSc, rLogFl, rLogDb sslog.LogFile
 	//slowSend                     map[string]int64
 	SQLCreateTable1 = string(`
@@ -125,6 +128,18 @@ func mailGetBody(prm queryParam, conf sscfg.ReadJSONConfig) ([]byte, []byte, boo
 	return contents1, contents2, true
 }
 
+func mailGetDKIM(conf sscfg.ReadJSONConfig) []byte {
+	f1, err := os.Open(conf.Conf.BDMS_DKIMKey)
+	if err != nil {
+		rLog.Log("Error open DKIM file!")
+		return nil
+	}
+	defer f1.Close()
+	reader1 := bufio.NewReader(f1)
+	contents1, _ := ioutil.ReadAll(reader1)
+	return contents1
+}
+
 func mailGetMX(name string, dbase sssql.USQL) ([]*net.MX, bool) {
 	var (
 		mx    []*net.MX
@@ -206,10 +221,12 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 
 	tl, statusTL := mailGetSubject(prm, conf)
 	if !statusTL {
+		rLog.Log("Error get subject!")
 		return false
 	}
 	bodyTXT, bodyHTML, statusBD := mailGetBody(prm, conf)
 	if !statusBD {
+		rLog.Log("Error get body!")
 		return false
 	}
 
@@ -231,6 +248,17 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	} else {
 		rLogDb.LogDbg(3, "232:", err)
 	}
+
+	options = dkim.NewSigOptions()
+	options.PrivateKey = mailGetDKIM(conf)
+	options.Domain = conf.Conf.BDMS_DKIMDomain
+	options.Selector = conf.Conf.BDMS_DKIMSelector
+	options.SignatureExpireIn = 3600
+	options.BodyLength = 50
+	options.Headers = []string{"To", "Subject", "From"}
+	options.AddSignatureTimestamp = true
+	options.Canonicalization = "relaxed/relaxed"
+	//options.Canonicalization = "relaxed/simple"
 
 	rLog.Log(query)
 	rows, err := dbase.D.Query(query)
@@ -376,15 +404,20 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	wc, err := c.Data()
 	if err != nil {
-		rLogFl.Log("Body ", headFrom, "->", headTo, " error /// ", err)
-
-		query = "update members set status=-32 where email='" + headTo + "';"
-		_ = dbase.QSimple(query)
-		//timeNow = time.Now()
-		//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+		if fmt.Sprintf("%v", err) == "EOF" {
+			rLogFl.Log("IP: ", fmt.Sprintf("%v", tcpAddr), " mail ", headFrom, "->", headTo, " - isprejected")
+		} else {
+			query = "update members set status=-32 where email='" + headTo + "';"
+			_ = dbase.QSimple(query)
+		}
 		return false
 	}
 	defer wc.Close()
+
+	//rLogDb.LogDbg(3, "----------\n", fmt.Sprintf("%s", body), "----------\n")
+	//rLogDb.LogDbg(3, "----------\n", fmt.Sprintf("%s", options.PrivateKey), "----------\n")
+	err = dkim.Sign(&body, options)
+	//rLogDb.LogDbg(3, "----------\n", fmt.Sprintf("%s", body), "----------\n")
 
 	buf := bytes.NewBufferString(fmt.Sprintf("%s", body))
 	if _, err = buf.WriteTo(wc); err != nil {
@@ -448,8 +481,12 @@ func main() {
 		prm.StateNameShort = x[2]
 		prm.Country = x[3]
 		prm.From = x[4]
-		prm.Mode = x[5]
-		prm.Limit = x[6]
+		//prm.Mode = x[5]
+		if len(x) > 6 {
+			prm.Limit = x[6]
+		} else {
+			prm.Limit = "0"
+		}
 
 		DBase.Init("MY", jsonConfig.Conf.MY_DSN, "")
 		DBase.QSimple(SQLCreateTable1)
@@ -472,10 +509,10 @@ func main() {
 		if instOfSenders > 0 {
 			timeNow = time.Now()
 			timeExec = int64(timeNow.Unix() - timeStart)
-			rLog.Log("Wait for complete all Gooutines: ", instOfSenders)
-			fmt.Printf("Wait for complete all Gooutines: %d\n", instOfSenders)
+			rLog.Log("Wait for complete all Goroutines: ", instOfSenders)
+			fmt.Printf("Wait for complete all Goroutines: %d\n", instOfSenders)
 			printAll("Time: ", timeExec, ", sent: ", cntSucc, ", wait: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
-			if instOfSenders < 10 {
+			if instOfSenders < 30 {
 				exitCounter--
 			}
 			if exitCounter < 1 {
@@ -488,6 +525,6 @@ func main() {
 	}
 	timeNow = time.Now()
 	timeExec = int64(timeNow.Unix() - timeStart)
-	printAll("Time: ", timeExec, ", sent: ", cntSucc, ", failed: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
+	printAll("Finish for ", prm.StateCode, "/", prm.StateName, "/", prm.Country, " > Time: ", timeExec, "sec, sent: ", cntSucc, ", failed: ", int(cntAll-cntSucc), ", count: ", cntAll)
 	printAll("Bye!")
 }
