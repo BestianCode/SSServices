@@ -401,12 +401,12 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	wc, err := c.Data()
 	if err != nil {
-		rLogFl.Log("Body ", headFrom, "->", headTo, " error /// ", err)
-
-		query = "update members set status=-32 where email='" + headTo + "';"
-		_ = dbase.QSimple(query)
-		//timeNow = time.Now()
-		//slowSend[fmt.Sprintf("%v", tcpAddr)] = timeNow.Unix()
+		if fmt.Sprintf("%v", err) == "EOF" {
+			rLogFl.Log("IP: ", fmt.Sprintf("%v", tcpAddr), " mail ", headFrom, "->", headTo, " - isprejected")
+		} else {
+			query = "update members set status=-32 where email='" + headTo + "';"
+			_ = dbase.QSimple(query)
+		}
 		return false
 	}
 	defer wc.Close()
