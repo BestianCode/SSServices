@@ -298,7 +298,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 }
 
 func mailSendMXRotate(body []byte, headFrom, headTo string, conf sscfg.ReadJSONConfig, dbase sssql.USQL) {
-	var count = int(10)
+	var count = int(3)
 
 	instOfSenders++
 	rLogDb.LogDbg(3, "269:", headTo)
@@ -355,7 +355,7 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 
 	tcpAddr := &net.TCPAddr{IP: addrs[x].(*net.IPNet).IP}
 
-	d := net.Dialer{Timeout: time.Duration(10) * time.Second, LocalAddr: tcpAddr}
+	d := net.Dialer{Timeout: time.Duration(6) * time.Second, LocalAddr: tcpAddr}
 
 	/*
 		timeNow := time.Now()
