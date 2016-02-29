@@ -152,7 +152,7 @@ func mailGetMX(name string, dbase sssql.USQL) ([]*net.MX, bool) {
 		return nil, false
 	}
 
-	query = "select distinct inet_ntoa(x.ip) from bmds_mx as x left join bmds_domain as y on (x.pid=y.id) where y.domain='" + parts[len(parts)-1] + "' and inet_ntoa(x.ip) like '%.%.%.%';"
+	query = "select distinct inet_ntoa(x.ip) from bmds_mx as x left join bmds_domain as y on (x.pid=y.id) where y.domain='" + parts[len(parts)-1] + "' and inet_ntoa(x.ip) like '%.%.%.%' order by x.weight;"
 	//rLogDb.LogDbg(3, "DNS Search: ", query)
 	rows, err := dbase.D.Query(query)
 	if err != nil {
@@ -446,7 +446,7 @@ func main() {
 
 	const (
 		pName = string("SSServices / BulkMailDirectSender")
-		pVer  = string("1 2016.02.26.00.00")
+		pVer  = string("1 2016.02.29.21.00")
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)
