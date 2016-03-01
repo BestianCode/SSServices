@@ -280,23 +280,25 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 
 		fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf)
 		if statusFM {
-			if instOfSenders > int(conf.Conf.BMDS_MaxInstances/100)*97 {
-				if countBusyPast < 1 {
+			if conf.Conf.BMDS_MaxInstances < 700 {
+				if instOfSenders > int(conf.Conf.BMDS_MaxInstances/100)*97 {
+					if countBusyPast < 1 {
+						busyTimeNow := time.Now()
+						countBusyPast = busyTimeNow.Unix()
+					}
 					busyTimeNow := time.Now()
-					countBusyPast = busyTimeNow.Unix()
+					countBusy += (busyTimeNow.Unix() - countBusyPast)
+					if countBusy > 300 {
+						conf.Conf.BMDS_MaxInstances += 100
+						countBusy = 0
+						countBusyPast = 0
+					}
 				}
-				busyTimeNow := time.Now()
-				countBusy += (busyTimeNow.Unix() - countBusyPast)
-				if countBusy > 300 {
-					conf.Conf.BMDS_MaxInstances += 100
+				rLog.Log("Busy: ", countBusy)
+				if instOfSenders < int(conf.Conf.BMDS_MaxInstances/100)*95 {
 					countBusy = 0
 					countBusyPast = 0
 				}
-			}
-			rLog.Log("Busy: ", countBusy)
-			if instOfSenders < int(conf.Conf.BMDS_MaxInstances/100)*95 {
-				countBusy = 0
-				countBusyPast = 0
 			}
 			if instOfSenders >= conf.Conf.BMDS_MaxInstances {
 				for {
@@ -466,7 +468,7 @@ func main() {
 
 	const (
 		pName = string("SSServices / BulkMailDirectSender")
-		pVer  = string("1 2016.03.01.23.45")
+		pVer  = string("1 2016.03.02.00.10")
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)
