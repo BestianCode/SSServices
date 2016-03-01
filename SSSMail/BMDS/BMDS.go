@@ -294,7 +294,9 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 						countBusyPast = 0
 					}
 				}
-				rLog.Log("Busy: ", countBusy)
+				if countBusy > 0 {
+					rLog.Log("Busy: ", countBusy)
+				}
 				if instOfSenders < int(conf.Conf.BMDS_MaxInstances/100)*95 {
 					countBusy = 0
 					countBusyPast = 0
