@@ -293,6 +293,8 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 						conf.Conf.BMDS_MaxInstances += 100
 						countBusy = 0
 					}
+				} else {
+					countBusy = 0
 				}
 
 				for {
