@@ -280,25 +280,24 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 
 		fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf)
 		if statusFM {
-			if instOfSenders >= conf.Conf.BMDS_MaxInstances {
-				if instOfSenders > int(conf.Conf.BMDS_MaxInstances/100)*97 {
-					if countBusyPast < 1 {
-						busyTimeNow := time.Now()
-						countBusyPast = busyTimeNow.Unix()
-					}
+			if instOfSenders > int(conf.Conf.BMDS_MaxInstances/100)*97 {
+				if countBusyPast < 1 {
 					busyTimeNow := time.Now()
-					countBusy += (busyTimeNow.Unix() - countBusyPast)
-					rLog.Log("Busy: ", countBusy)
-					if countBusy > 300 {
-						conf.Conf.BMDS_MaxInstances += 100
-						countBusy = 0
-						countBusyPast = 0
-					}
-				} else {
+					countBusyPast = busyTimeNow.Unix()
+				}
+				busyTimeNow := time.Now()
+				countBusy += (busyTimeNow.Unix() - countBusyPast)
+				rLog.Log("Busy: ", countBusy)
+				if countBusy > 300 {
+					conf.Conf.BMDS_MaxInstances += 100
 					countBusy = 0
 					countBusyPast = 0
 				}
-
+			} else {
+				countBusy = 0
+				countBusyPast = 0
+			}
+			if instOfSenders >= conf.Conf.BMDS_MaxInstances {
 				for {
 					if instOfSenders < conf.Conf.BMDS_MaxInstances {
 						break
