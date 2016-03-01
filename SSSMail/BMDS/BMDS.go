@@ -214,9 +214,11 @@ func mailGetMX(name string, dbase sssql.USQL) ([]*net.MX, bool) {
 
 func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bool {
 	var (
-		err   error
-		query string
-		mail  string
+		err           error
+		query         string
+		mail          string
+		countBusy     int64
+		countBusyPast int64
 	)
 
 	tl, statusTL := mailGetSubject(prm, conf)
@@ -279,6 +281,20 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 		fullMail, statusFM := mailCreate(prm, mail, tl, bodyTXT, bodyHTML, conf)
 		if statusFM {
 			if instOfSenders >= conf.Conf.BMDS_MaxInstances {
+				if instOfSenders > int(conf.Conf.BMDS_MaxInstances/100)*90 {
+					if countBusyPast < 1 {
+						busyTimeNow := time.Now()
+						countBusyPast = busyTimeNow.Unix()
+					}
+					busyTimeNow := time.Now()
+					countBusy += (busyTimeNow.Unix() - countBusyPast)
+					rLog.Log("Busy: ", countBusy)
+					if countBusy > 120 {
+						conf.Conf.BMDS_MaxInstances += 100
+						countBusy = 0
+					}
+				}
+
 				for {
 					if instOfSenders < conf.Conf.BMDS_MaxInstances {
 						break
@@ -440,13 +456,13 @@ func main() {
 		jsonConfig          sscfg.ReadJSONConfig
 		prm                 queryParam
 		DBase               sssql.USQL
-		exitCounter         = int(3)
+		exitCounter         = int(10)
 		timeStart, timeExec int64
 	)
 
 	const (
 		pName = string("SSServices / BulkMailDirectSender")
-		pVer  = string("1 2016.02.29.21.00")
+		pVer  = string("1 2016.03.01.23.45")
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)
@@ -512,9 +528,7 @@ func main() {
 			rLog.Log("Wait for complete all Goroutines: ", instOfSenders)
 			fmt.Printf("Wait for complete all Goroutines: %d\n", instOfSenders)
 			printAll("Time: ", timeExec, ", sent: ", cntSucc, ", wait: ", int(cntAll-cntSucc), ", count: ", cntAll, ", instances: ", instOfSenders)
-			if instOfSenders < 30 {
-				exitCounter--
-			}
+			exitCounter--
 			if exitCounter < 1 {
 				break
 			}
