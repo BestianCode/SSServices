@@ -470,7 +470,7 @@ func main() {
 
 	const (
 		pName = string("SSServices / BulkMailDirectSender")
-		pVer  = string("1 2016.03.02.00.10")
+		pVer  = string("1 2016.03.02.21.00")
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)
