@@ -410,10 +410,9 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 		_ = dbase.QSimple(query)
 		return false
 	}
-
 	host, _, _ := net.SplitHostPort(server + ":25")
 	c, err := smtp.NewClient(conn, host)
-
+	c.Hello(conf.Conf.BDMS_DKIMDomain)
 	//c, err := smtp.Dial(server + ":25")
 	if err != nil {
 		rLogFl.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
