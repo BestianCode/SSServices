@@ -73,6 +73,7 @@ func mailCreate(prm queryParam, to, subject string, bodyTXT, bodyHTML []byte, co
 		"Return-Path: <" + prm.From + ">\r\n" +
 		"Message-ID: <" + rnd + "@" + senderDomain[len(senderDomain)-1] + ">\r\n" +
 		"X-Mailjet-Campaign: " + subject + "\r\n" +
+		"Date: " + t.Format(time.RFC1123Z) + "\r\n" +
 		"To: " + to + "\r\n" +
 		"List-Unsubscribe: <mailto:qaka@qakadeals.com?subject=unsubscribe>\r\n" +
 		"Subject: " + subject + "\r\n" +
@@ -257,7 +258,7 @@ func mailPrepare(prm queryParam, conf sscfg.ReadJSONConfig, dbase sssql.USQL) bo
 	options.Selector = conf.Conf.BDMS_DKIMSelector
 	options.SignatureExpireIn = 3600
 	options.BodyLength = 50
-	options.Headers = []string{"To", "Subject", "From"}
+	options.Headers = []string{"To", "Subject", "From", "Date"}
 	options.AddSignatureTimestamp = true
 	options.Canonicalization = "relaxed/relaxed"
 	//options.Canonicalization = "relaxed/simple"
