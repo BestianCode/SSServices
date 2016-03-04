@@ -412,7 +412,16 @@ func mailSend(body []byte, headFrom, headTo, server string, conf sscfg.ReadJSONC
 	}
 	host, _, _ := net.SplitHostPort(server + ":25")
 	c, err := smtp.NewClient(conn, host)
-	c.Hello(conf.Conf.BDMS_DKIMDomain)
+	if err != nil {
+		rLogFl.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
+		return false
+	}
+	err = c.Hello(conf.Conf.BDMS_DKIMDomain)
+	if err != nil {
+		rLogFl.Log("SMTP: ", server, " hello error for ", headFrom, "->", headTo, " /// ", err)
+		return false
+	}
+
 	//c, err := smtp.Dial(server + ":25")
 	if err != nil {
 		rLogFl.Log("SMTP: ", server, " connect error for ", headFrom, "->", headTo, " /// ", err)
@@ -470,7 +479,7 @@ func main() {
 
 	const (
 		pName = string("SSServices / BulkMailDirectSender")
-		pVer  = string("1 2016.03.02.21.00")
+		pVer  = string("1 2016.03.04.21.00")
 	)
 
 	fmt.Printf("\n\t%s V%s\n\n", pName, pVer)
